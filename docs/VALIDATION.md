@@ -5,13 +5,17 @@
 The repository currently supports these claims:
 
 1. CVSS v4.0 inputs remain separate and independently reproducible.
-2. Every Level 1 assessment requires a complete Agentic AI Profile (eight
-   metrics with evidence) and one coherent path.
-3. Unknown classifying evidence is represented explicitly as effect class `AX`.
-4. Effect-class algorithms are deterministic, exact, and exhaustively tested
-   over their finite input domains.
-5. Normative AIVSS severity equals CVSS-BTE; assurance metrics are
-   descriptive metadata only.
+2. Every Conformance Level 1 assessment requires a complete Agentic AI Profile
+   (five metrics with evidence), an agent untraceability record, and one
+   coherent path.
+3. Unknown classifying evidence is represented explicitly: the result is
+   `provisional`, and the Effect Class is `AX` when the known metrics meet no
+   A1 or A2 condition.
+4. The Effect Class ladder and Lookup Tables U and AIVSS (Tables 5 and 6) are
+   deterministic, exact, and exhaustively tested over their finite input
+   domains.
+5. AIVSS is read from Table 6 and is never lower than CVSS-BTE, which is
+   always published beside it. U is informative and never enters a decision.
 6. Exploit Maturity (`E`) is resolved from the factual evidence ladder before
    CVSS-BTE interpolation; EPSS does not set `E`.
 7. Findings may use ASI01–ASI10 or MAESTRO-extended taxonomy metadata.
@@ -27,11 +31,14 @@ exploitation, or optimal remediation decisions.
 
 https://github.com/kenhuangus/aivss-v1-candidate
 
-The reference calculator (`aivss-calc` 1.0.1) implements Level 1/2 assessment
-mechanics in this repository: E resolution, required Agentic AI Profile,
-ASI and MAESTRO-extended taxonomy, and SSVC/BOD decision tracks. The `legacy`
-subcommand is for migration comparison only and must not be used for
-compliance.
+The reference calculator (`aivss-calc` 1.1.0) implements Conformance Level 1
+and 2 assessment mechanics of the condensed specification: E resolution, the
+five-metric Agentic AI Profile, the Effect Class ladder, Lookup Tables U and
+AIVSS, agent untraceability metadata, ASI and MAESTRO-extended taxonomy, and
+SSVC/BOD decision tracks. The `legacy` subcommand reproduces withdrawn v0.x
+uplift scores for migration comparison only and must not be used for
+compliance; `migrate-vector` converts draft eight-metric vectors.
+
 ## Candidate hypotheses
 
 The following outputs are retained to enable evaluation, not to assert
@@ -40,6 +47,7 @@ validity:
 | Output | Current status |
 |---|---|
 | A0/A1/A2 effect-class boundaries | candidate-unvalidated |
+| Table 6 A1 and A2 cell values | policy settings, not yet validated against independently rated findings |
 | A2 remediation acceleration | experimental-uncalibrated |
 | AIVSS-P portfolio order | organization-local-uncalibrated |
 
@@ -49,10 +57,10 @@ examples, and CLI output must use the same labels.
 ## Synthetic fixtures and AIVSS-P (Phase 6)
 
 Worked examples under `examples/` are **synthetic reference fixtures** generated
-from the scenario catalog. They illustrate Mode 1 scoring paths only; they are
-not field measurements or loss estimates.
+from the scenario catalog. They illustrate the lookup scoring path only; they
+are not field measurements or loss estimates.
 
-AIVSS-P (Level 3) is an organization-internal priority index. It is **not**
+AIVSS-P is an optional organization-internal priority index. It is **not**
 monetary loss. Unknown likelihood, reach, or criticality MUST be recorded as
 unknown (`X`) and excluded from the numeric index — unknown is not zero.
 Organizations MUST publish their qualitative→numeric mapping internally before
@@ -62,9 +70,9 @@ grid and require corpus recalibration).
 When AIVSS-P band conflicts with BOD baseline (e.g., Immediate vs 60D), the
 `cisa:BOD2604:1.0.0` outcome is the federal compliance obligation. Release
 gates evaluate in order; the most-restrictive applicable gate wins. Waivers
-document deployment exceptions; they are not product roadmaps. TD — not TA —
-is the traceability metric for gate conditions. Mode 2 and candidate_adjusted
-triggers are withdrawn.
+document deployment exceptions; they are not product roadmaps. Agent
+untraceability is the traceability input for gate conditions. Mode 2 and
+candidate_adjusted triggers are withdrawn.
 
 ## Required evidence before a stable scoring claim
 
@@ -128,6 +136,18 @@ A stable release may not label a numeric output normative until all gates pass:
 
 The package, report, rubric, and extension-vector versions are separate fields
 with one source of truth in `aivss_calc/versions.py`.
+
+Candidate-period exception: while the specification status is `candidate`,
+changes that bring the implementation into line with the published
+specification text are released as minor versions, even when the rules above
+would call them major. The published specification fixes the extension vector
+prefix at `AIVSS:1.0`, so a major calculator version would advertise a break
+that the vector itself cannot show. Under this exception, calculator and rubric
+1.1.0 align the draft implementation with the condensed AIVSS 1.0
+specification: they replace the draft eight-metric vector with the five-metric
+form and add the Table 5 and Table 6 lookups. Draft vectors are converted with
+`aivss-calc migrate-vector`. The major-version rules apply in full once the
+specification leaves candidate status.
 
 ## Reproducibility checklist
 

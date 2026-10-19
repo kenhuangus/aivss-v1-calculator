@@ -4,12 +4,24 @@
   "title": "Unsigned agent-to-agent messages allow instruction relay",
   "summary": "Inter-agent messages lack authentication, enabling cross-agent propagation of malicious intent.",
   "cvss_vector": "CVSS:4.0/AV:A/AC:L/AT:N/PR:N/UI:N/VC:L/VI:H/VA:N/SC:H/SI:L/SA:N/E:P",
-  "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:R/EX:W/PT:H/CA:M/TD:M",
+  "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:R/ES:W",
   "publicly_exposed": false,
   "automatable": true,
   "technical_impact": "total",
   "evidence": {
     "poc": true
+  },
+  "agent_untraceability": {
+    "rationale": "Synthetic reference fact for AIVSS-ASI07-001: A retrieval test reconstructs ordered actions and principals but finds missing integrity or retention evidence.",
+    "evidence_refs": [
+      "fixture://AIVSS-ASI07-001/untraceability"
+    ],
+    "retrieval_tested": true,
+    "ordered_actions_reconstructable": true,
+    "affected_principals_bounded": true,
+    "required_fields_complete": false,
+    "integrity_protected": false,
+    "retention_verified": false
   },
   "path_id": "AIVSS-ASI07-001-PATH-1",
   "agentic_applicability": {
@@ -36,7 +48,7 @@
       ]
     },
     "AP": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI07-001: Compromised intent, instructions, memory, or authority crosses a trust boundary to other agents, other tenants, or downstream systems.",
+      "rationale": "Synthetic reference fact for AIVSS-ASI07-001: Compromised intent or authority crosses a trust boundary into another agent, tenant, principal or policy domain. Impact on downstream systems is scored in CVSS SC/SI/SA, not here.",
       "evidence_refs": [
         "fixture://AIVSS-ASI07-001/ap"
       ]
@@ -56,39 +68,11 @@
       "lower_bound": 0.9172621864014352,
       "upper_bound": 1.0
     },
-    "EX": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI07-001: A reachable extension is dynamic or unvetted, or its identity, callable operations, arguments, credentials, or authority are not independently constrained for the assessed deployment.",
+    "ES": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI07-001: A reachable tool, MCP server, skill or plugin is dynamic or unvetted, or its identity, callable operations, arguments or credentials are not independently constrained on the assessed path.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI07-001/ex"
+        "fixture://AIVSS-ASI07-001/es"
       ]
-    },
-    "PT": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI07-001: Runtime routing can select an unapproved provider and unpinned model, so no enforceable provider/model identifier or artifact integrity claim exists for this path.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI07-001/pt"
-      ]
-    },
-    "CA": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI07-001: A finite hard request ceiling is enforced, but its aggregate coverage across a stable principal and tenant is incomplete.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI07-001/ca"
-      ],
-      "ceiling_defined": true,
-      "coverage_complete": false,
-      "fail_closed": true,
-      "bypass_demonstrated": false
-    },
-    "TD": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI07-001: A retrieval test reconstructs ordered actions and principals but finds missing integrity or retention evidence.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI07-001/td"
-      ],
-      "retrieval_tested": true,
-      "ordered_actions_reconstructable": true,
-      "affected_principals_bounded": true,
-      "required_fields_complete": false,
-      "integrity_protected": false,
-      "retention_verified": false
     }
   },
   "include_decision": true,
@@ -97,7 +81,7 @@
     "assessor": "synthetic-reference-fixture",
     "assessor_kind": "imported",
     "tool": "aivss-calc",
-    "tool_version": "1.0.1",
+    "tool_version": "1.1.0",
     "assessed_at": "2026-08-27T00:00:00Z"
   }
 }

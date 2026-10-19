@@ -4,12 +4,24 @@
   "title": "Agent misuses legitimate tool for unauthorized data export",
   "summary": "A compromised or misled agent invokes an authorized tool outside its intended scope.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:N/SC:H/SI:N/SA:N/E:P",
-  "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:C/SR:R/EX:M/PT:M/CA:M/TD:L",
+  "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:C/SR:R/ES:M",
   "publicly_exposed": true,
   "automatable": true,
   "technical_impact": "total",
   "evidence": {
     "poc": true
+  },
+  "agent_untraceability": {
+    "rationale": "Synthetic reference fact for AIVSS-ASI02-001: A retrieval exercise verifies all required correlated, integrity-protected, and retained records.",
+    "evidence_refs": [
+      "fixture://AIVSS-ASI02-001/untraceability"
+    ],
+    "retrieval_tested": true,
+    "ordered_actions_reconstructable": true,
+    "affected_principals_bounded": true,
+    "required_fields_complete": true,
+    "integrity_protected": true,
+    "retention_verified": true
   },
   "path_id": "AIVSS-ASI02-001-PATH-1",
   "agentic_applicability": {
@@ -36,7 +48,7 @@
       ]
     },
     "AP": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI02-001: Propagation occurs within the agent's own tool and action scope but does not cross a trust boundary.",
+      "rationale": "Synthetic reference fact for AIVSS-ASI02-001: Influence relays across agent components under the same principal and policy domain without crossing a trust boundary.",
       "evidence_refs": [
         "fixture://AIVSS-ASI02-001/ap"
       ]
@@ -56,39 +68,11 @@
       "lower_bound": 0.9172621864014352,
       "upper_bound": 1.0
     },
-    "EX": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI02-001: One or more vetted extensions are fixed and allowlisted, with schema-validated arguments and least-privilege credentials enforced outside model output.",
+    "ES": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI02-001: Extensions are allowlisted, but material gaps remain in argument schemas, credentials or callable operations.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI02-001/ex"
+        "fixture://AIVSS-ASI02-001/es"
       ]
-    },
-    "PT": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI02-001: Synthetic provider ref-provider and deployment model-ref-v1 are fixed under config-ref-v1 and changes are auditable, but provider-side artifact contents cannot be verified at runtime.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI02-001/pt"
-      ]
-    },
-    "CA": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI02-001: A finite hard request ceiling is enforced, but its aggregate coverage across a stable principal and tenant is incomplete.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI02-001/ca"
-      ],
-      "ceiling_defined": true,
-      "coverage_complete": false,
-      "fail_closed": true,
-      "bypass_demonstrated": false
-    },
-    "TD": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI02-001: A retrieval exercise verifies all required correlated, integrity-protected, and retained records.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI02-001/td"
-      ],
-      "retrieval_tested": true,
-      "ordered_actions_reconstructable": true,
-      "affected_principals_bounded": true,
-      "required_fields_complete": true,
-      "integrity_protected": true,
-      "retention_verified": true
     }
   },
   "include_decision": true,
@@ -97,7 +81,7 @@
     "assessor": "synthetic-reference-fixture",
     "assessor_kind": "imported",
     "tool": "aivss-calc",
-    "tool_version": "1.0.1",
+    "tool_version": "1.1.0",
     "assessed_at": "2026-08-27T00:00:00Z"
   }
 }

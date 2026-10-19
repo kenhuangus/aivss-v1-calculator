@@ -13,6 +13,7 @@ from . import __version__
 from .ai_metrics import (
     AI_METRICS,
     AIProfile,
+    convert_legacy_vector,
     parse_aivss_vector,
     split_ai_vector,
 )
@@ -27,9 +28,9 @@ from .scenarios import SCENARIOS, scenario_payload
 from .taxonomy import ASI_TOP_10
 from .validation import validate_assessment_input, validate_report
 
-ASSURANCE_METRICS = ("EX", "PT", "CA", "TD")
 CLASSIFYING_METRICS = ("LC", "CP", "AP", "SR")
-ALL_AGENTIC_METRICS = CLASSIFYING_METRICS + ASSURANCE_METRICS
+UPLIFT_METRICS = ("ES",)
+ALL_AGENTIC_METRICS = CLASSIFYING_METRICS + UPLIFT_METRICS
 
 
 def _emit(payload: Any, pretty: bool = True) -> None:
@@ -55,7 +56,8 @@ def _profile_from_args(args: argparse.Namespace) -> AIProfile | None:
     missing = [name for name in ALL_AGENTIC_METRICS if supplied[name] is None]
     if missing:
         raise ValueError(
-            "all eight AIVSS metrics are required when flags are used; "
+            "all five AIVSS metrics (LC, CP, AP, SR, ES) are required when flags "
+            "are used; "
             f"missing {', '.join(missing)}"
         )
     return AIProfile(**{name.lower(): supplied[name] for name in ALL_AGENTIC_METRICS})
@@ -71,7 +73,7 @@ def _resolve_profile(
     if len(sources) > 1:
         raise ValueError(
             "provide the AIVSS profile once, using --aivss-vector, "
-            "all eight metric flags, or two-vector display form"
+            "all five metric flags, or two-vector display form"
         )
     return sources[0] if sources else None
 
@@ -110,7 +112,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
     profile = _resolve_profile(args, embedded)
     if profile is None:
         raise ValueError(
-            "profile requires a current-version AIVSS vector or all eight metric flags"
+            "profile requires a current-version AIVSS vector or all five metric flags"
         )
     _emit(profile_report(cvss_only, profile))
     return 0
@@ -122,6 +124,7 @@ def cmd_decide(args: argparse.Namespace) -> int:
             evidence=_evidence_from_args(args),
             vector=args.vector,
             agentic_effect_class=args.agentic_effect_class,
+            agent_untraceability=args.agent_untraceability,
             publicly_exposed=args.publicly_exposed,
             publicly_exposed_source=args.publicly_exposed_source,
             decision_data_observed_at=args.decision_data_observed_at,
@@ -222,13 +225,19 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0 if passed else 1
 
 
+def cmd_migrate_vector(args: argparse.Namespace) -> int:
+    """Convert a draft eight-metric AIVSS vector to the condensed form."""
+    _emit(convert_legacy_vector(args.vector))
+    return 0
+
+
 def cmd_taxonomy(args: argparse.Namespace) -> int:
     _emit({"OWASP Top 10 for Agentic Applications 2026": ASI_TOP_10})
     return 0
 
 
 def cmd_rubric(args: argparse.Namespace) -> int:
-    """Emit the exhaustive value sets for all eight Agentic AI metrics."""
+    """Emit the value sets for the five Agentic AI metrics."""
     _emit(rubric())
     return 0
 
@@ -257,6 +266,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--agentic-effect-class",
         choices=("A0", "A1", "A2", "AX"),
         dest="agentic_effect_class",
+    )
+    p.add_argument(
+        "--agent-untraceability",
+        choices=("High", "Moderate", "Low", "X"),
+        dest="agent_untraceability",
+        help="Agent untraceability metadata; recorded, never changes the timeline",
     )
     p.add_argument("--publicly-exposed", type=_parse_optional_bool)
     p.add_argument("--publicly-exposed-source")
@@ -296,11 +311,18 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("verify")
     p.set_defaults(func=cmd_verify)
 
+    p = sub.add_parser(
+        "migrate-vector",
+        help="Convert a draft eight-metric AIVSS vector (EX/PT/CA/TD) to LC/CP/AP/SR/ES",
+    )
+    p.add_argument("vector")
+    p.set_defaults(func=cmd_migrate_vector)
+
     p = sub.add_parser("taxonomy")
     p.set_defaults(func=cmd_taxonomy)
 
     p = sub.add_parser(
-        "rubric", help="List all eight Agentic AI metric value sets and definitions"
+        "rubric", help="List the five Agentic AI metric value sets and definitions"
     )
     p.set_defaults(func=cmd_rubric)
 

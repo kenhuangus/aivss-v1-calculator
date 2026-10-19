@@ -4,12 +4,24 @@
   "title": "Faulty planner triggers cascading downstream task failures",
   "summary": "A single agent fault propagates through orchestration to many dependent workflows.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:H/VA:H/SC:H/SI:H/SA:L/E:P",
-  "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:P/EX:W/PT:M/CA:W/TD:H",
+  "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:P/ES:W",
   "publicly_exposed": true,
   "automatable": false,
   "technical_impact": "total",
   "evidence": {
     "poc": true
+  },
+  "agent_untraceability": {
+    "rationale": "Synthetic reference fact for AIVSS-ASI08-001: A retrieval test cannot reconstruct ordered actions or bound affected principals.",
+    "evidence_refs": [
+      "fixture://AIVSS-ASI08-001/untraceability"
+    ],
+    "retrieval_tested": true,
+    "ordered_actions_reconstructable": false,
+    "affected_principals_bounded": false,
+    "required_fields_complete": false,
+    "integrity_protected": false,
+    "retention_verified": false
   },
   "path_id": "AIVSS-ASI08-001-PATH-1",
   "agentic_applicability": {
@@ -36,13 +48,13 @@
       ]
     },
     "AP": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: Compromised intent, instructions, memory, or authority crosses a trust boundary to other agents, other tenants, or downstream systems.",
+      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: Compromised intent or authority crosses a trust boundary into another agent, tenant, principal or policy domain. Impact on downstream systems is scored in CVSS SC/SI/SA, not here.",
       "evidence_refs": [
         "fixture://AIVSS-ASI08-001/ap"
       ]
     },
     "SR": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: A production-equivalent fixture records 18 successful independent episodes out of 30, each from clean state with the hard production budget of three attempts for one stable principal; one-sided 95% Wilson bounds are 0.451 and 0.733.",
+      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: A production-equivalent fixture records 18 successful independent episodes out of 30, each from clean state with the hard production budget of three attempts for one stable principal; one-sided 95% Wilson bounds are 0.451 and 0.733. Repeated attempts are needed, so the CVSS vector records AT:P.",
       "evidence_refs": [
         "fixture://AIVSS-ASI08-001/sr"
       ],
@@ -56,39 +68,11 @@
       "lower_bound": 0.450568396605209,
       "upper_bound": 0.7328840406750781
     },
-    "EX": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: A reachable extension is dynamic or unvetted, or its identity, callable operations, arguments, credentials, or authority are not independently constrained for the assessed deployment.",
+    "ES": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: A reachable tool, MCP server, skill or plugin is dynamic or unvetted, or its identity, callable operations, arguments or credentials are not independently constrained on the assessed path.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI08-001/ex"
+        "fixture://AIVSS-ASI08-001/es"
       ]
-    },
-    "PT": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: Synthetic provider ref-provider and deployment model-ref-v1 are fixed under config-ref-v1 and changes are auditable, but provider-side artifact contents cannot be verified at runtime.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI08-001/pt"
-      ]
-    },
-    "CA": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: No finite hard aggregate pre-execution ceiling exists for all attacker-reachable billable resources.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI08-001/ca"
-      ],
-      "ceiling_defined": false,
-      "coverage_complete": false,
-      "fail_closed": false,
-      "bypass_demonstrated": false
-    },
-    "TD": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: A retrieval test cannot reconstruct ordered actions or bound affected principals.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI08-001/td"
-      ],
-      "retrieval_tested": true,
-      "ordered_actions_reconstructable": false,
-      "affected_principals_bounded": false,
-      "required_fields_complete": false,
-      "integrity_protected": false,
-      "retention_verified": false
     }
   },
   "include_decision": true,
@@ -97,7 +81,7 @@
     "assessor": "synthetic-reference-fixture",
     "assessor_kind": "imported",
     "tool": "aivss-calc",
-    "tool_version": "1.0.1",
+    "tool_version": "1.1.0",
     "assessed_at": "2026-08-27T00:00:00Z"
   }
 }

@@ -59,7 +59,7 @@ function overlayNode(row) {
 
 function card(row) {
   const bar = node("span");
-  bar.style.width = scoreWidth(row.mode1_aivss);
+  bar.style.width = scoreWidth(row.aivss);
   return node(
     "article",
     { class: "card" },
@@ -78,9 +78,13 @@ function card(row) {
     node(
       "div",
       { class: "score-box score-box-full" },
-      node("div", { class: "score-label", text: "AIVSS · CVSS-BTE" }),
-      node("div", { class: "score-value mode1", text: formatScore(row.mode1_aivss) }),
+      node("div", { class: "score-label", text: `AIVSS · ${row.aivss_band}` }),
+      node("div", { class: "score-value aivss", text: formatScore(row.aivss) }),
       node("div", { class: "bar" }, bar),
+      node("div", {
+        class: "score-sub",
+        text: `${row.cvss_nomenclature} ${formatScore(row.cvss_bte)} · U ${row.agentic_uplift_u ?? "—"} · untraceability ${row.agent_untraceability}`,
+      }),
     ),
     node(
       "div",
@@ -113,7 +117,7 @@ function renderCards(data) {
   const sorted = [...data].sort((a, b) => {
     if (key === "asi") return a.asi.localeCompare(b.asi);
     if (key === "class") return a.agentic_effect_class.localeCompare(b.agentic_effect_class);
-    return (b.mode1_aivss ?? -1) - (a.mode1_aivss ?? -1);
+    return (b.aivss ?? -1) - (a.aivss ?? -1);
   });
   grid.replaceChildren(...sorted.map(card));
 }
@@ -166,8 +170,11 @@ async function showDetail(asi) {
   const metaRow = node(
     "div",
     { class: "detail-meta" },
-    meta("AIVSS (CVSS-BTE)", formatScore(report.scores.mode1_interpretation?.aivss)),
-    meta("Effect class", report.agentic_ai_profile?.agentic_effect_class ?? "—"),
+    meta("AIVSS", `${formatScore(report.scores.aivss)} ${report.scores.aivss_band}`),
+    meta(report.scores.cvss_nomenclature, formatScore(report.scores.cvss_bte)),
+    meta("Effect class", report.scores.agentic_effect_class ?? "—"),
+    meta("U", String(report.scores.agentic_uplift_u ?? "—")),
+    meta("Untraceability", report.agent_untraceability?.value ?? "—"),
     meta("BOD analogy", bodLabel),
     decision.escalated && decision.aivss_recommended_label
       ? meta("Overlay", decision.aivss_recommended_label)

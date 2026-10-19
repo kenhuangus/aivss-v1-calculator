@@ -62,7 +62,9 @@ def test_demo_top10_api():
         rows = json.loads(body)
         assert len(rows) == 10
         assert rows[0]["asi"] == "ASI01"
-        assert "mode1_aivss" in rows[0]
+        assert rows[0]["aivss"] == 10.0
+        assert rows[0]["cvss_bte"] == 9.2
+        assert rows[0]["agent_untraceability"] in ("High", "Moderate", "Low", "X")
         assert "escalated" in rows[0]
         # A2 at 3D ceiling: overlay_triggered but not escalated
         asi01 = next(r for r in rows if r["asi"] == "ASI01")
@@ -123,7 +125,8 @@ def test_static_build_includes_web_assets():
         assert status == 200
         payload = json.loads(body)
         assert payload["report"]["risk_category"]["id"] == "ASI04"
-        assert payload["report"]["scores"]["mode1_interpretation"]["status"] == "normative"
+        assert payload["report"]["scores"]["status"] == "normative"
+        assert payload["report"]["scores"]["aivss"] == 9.5
         assert payload["report"]["decision"]["ssvc"]["decision_table"] == "cisa:DT_BOD2604:1.0.0"
 
         missing, _ = _get(host, port, "/api/scenario/ASI99")

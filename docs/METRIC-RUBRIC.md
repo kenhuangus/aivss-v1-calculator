@@ -1,8 +1,14 @@
-# Agentic AI Metric Rubric 1.0.0
+# Agentic AI Metric Rubric 1.1.0
 
-This is the authoritative value-definition document for the eight AIVSS
-metrics. [SCORING.md](SCORING.md) owns algorithms; [CVSS-MAPPING.md](CVSS-MAPPING.md)
-owns boundaries with CVSS.
+This is the authoritative value-definition document for the five AIVSS 1.0
+metrics (LC, CP, AP, SR, ES) and for the mandatory `agent_untraceability`
+metadata. [SCORING.md](SCORING.md) owns the Effect Class ladder and the lookup
+tables; [CVSS-MAPPING.md](CVSS-MAPPING.md) owns boundaries with CVSS.
+
+Rubric 1.1.0 aligns with the condensed specification. Compared with the 1.0.0
+draft rubric: EX is renamed ES (extension binding surface) and its values are
+redefined, PT and CA are withdrawn, and TD is replaced by agent untraceability
+metadata, which is not a vector metric.
 
 ## Required assessment record
 
@@ -17,7 +23,8 @@ Before assigning values, record:
 
 Assign exactly one value to every metric and provide a non-empty rationale.
 Use `X` for insufficient evidence. `X` is not a midpoint, benign default, or
-worst-case value. Unknown classifying metrics yield effect class `AX`.
+worst-case value. Any `X` on LC, CP, AP or SR makes the result provisional; the
+Effect Class is AX only when no A1 or A2 clause applies to the known metrics.
 
 Apply each decision procedure from top to bottom to the same coherent path.
 If two known conditions appear to apply, choose the first. If the evidence
@@ -56,7 +63,7 @@ Rules:
   attacker-influenceable summary.
 - CVSS UI records human participation and must be assessed separately.
 
-## CP — Context and Memory Persistence
+## CP — Context Persistence
 
 Question: How long can attacker-controlled context or memory influence later
 behavior on this path?
@@ -81,7 +88,7 @@ Logging, backups, or analytics copies that are never read by the agent do not
 count. Same-user influence in a later login is C. A conversation window used
 for later turns is S even if it has a short time-to-live.
 
-## AP — Agentic Propagation
+## AP — Agentic Control Propagation
 
 Question: Where can compromised intent, authority, or state propagate?
 
@@ -141,144 +148,93 @@ need to reproduce the interval arithmetic independently.
 | U — Unreliable | A deterministic control-flow proof excludes success, or `n >= 30` and the Wilson `upper < 0.10`. |
 | X — Insufficient evidence | Fewer than 30 representative episodes exist; zero successes do not produce `upper < 0.10`; the retry/identity/concurrency budget is not hard-enforced; trials are not independent; or environment/model drift invalidates the trials. |
 
+SR must agree with CVSS Attack Requirements: `SR:P` or `SR:U` requires `AT:P`,
+because FIRST's AT:P covers attacks that may need to be launched several times
+against one target. `SR:R` is consistent with `AT:N` unless another AT:P
+condition applies. A path whose success does not depend on model output and
+succeeds deterministically is `SR:R`. SR is used only in the Effect Class
+ladder (to separate reliable direct control, A2, from unreliable direct
+control, A1) and in the A2 rows of Lookup Table U.
+
 Do not infer SR from temperature, a single proof of concept, CVSS AC/E, or CISA
 Automatable. Do not treat individual retries as independent observations when
 they share state. Retries across identities belong inside each episode if the
 path does not bind limits to a stable principal.
 
-## EX — Extension Surface
+## ES — Extension Binding Surface
 
-Question: How tightly are extensions reachable between attacker input and the
-security-relevant effect constrained?
+Question: How tightly are the extensions reachable between attacker input and
+the security-relevant effect bound?
 
 Extensions include native/function tools, MCP servers, plug-ins, packaged
 agent skills, and workflow/sub-agent orchestration. Classify the effective
-invocation boundary, not the product label or number of mechanisms. One
-overprivileged tool can be W; many independently constrained tools can be M.
+binding on the assessed path, not the product label or number of mechanisms.
+One overprivileged tool can be W; many independently constrained tools can be
+N.
 
 | Value | Assign when |
 |---|---|
-| W — Wide | At least one extension on the path is dynamically loaded, user supplied, unvetted, or unpinned; or extension identity, callable operation, argument schema, credential scope, tenant boundary, or authorization is not independently constrained for the assessed deployment. |
-| M — Managed | Every extension on the path is identified, pinned or equivalently fixed, vetted, and allowlisted; arguments are schema-validated; credentials are least-privilege and tenant-bound; and an enforcement point outside model output authorizes the operation. |
-| N — None | No extension mechanism is invoked or selectable on the path; the effect is confined to model output or fixed non-agentic logic. |
+| W — Wide | At least one extension on the path is dynamic or unvetted, or its identity, callable operations, arguments or credentials are not independently constrained on the assessed path. |
+| M — Managed | Every extension on the path is allowlisted, but material gaps remain in argument schemas, credential scope, or the set of callable operations. |
+| N — None or narrow | No security-relevant dynamic extension is reachable, or every reachable binding is fixed, allowlisted and least-privilege, with schema-validated arguments and authorization enforced outside model output. |
 | X — Insufficient evidence | The deployed extension manifest, extension identity/version, reachable call graph, argument enforcement, credential scope, or authorization behavior is unavailable or untested. |
 
 Decision procedure:
 
 ```text
-any reachable extension control is absent or bypassable -> W
-else all reachable extensions satisfy every M control   -> M
-else verified no extension is reachable on the path     -> N
-else                                                     -> X
+any reachable extension is dynamic/unvetted or unconstrained -> W
+else allowlisted but with schema, credential or operation gaps -> M
+else no extension, or fixed least-privilege binding verified  -> N
+else                                                          -> X
 ```
 
-Read-only is not automatically M: a cross-tenant data-reading extension with
-overbroad credentials is W. Conversely, using both an MCP server and a workflow
-does not make the surface W when every reachable operation meets all M controls.
-Record realized confidentiality, integrity, and availability impact in CVSS;
-EX records the independent extension invocation boundary.
+Read-only is not automatically N: a cross-tenant data-reading extension with
+overbroad credentials is W. Record realized confidentiality, integrity, and
+availability impact in CVSS; ES records the independent extension binding.
+ES does not enter the Effect Class; it selects the column of Lookup Table U.
 
-## PT — Provider Trust Deficit
+## Agent untraceability (report metadata)
 
-Question: Can defenders establish and enforce the identity and integrity of the
-model and inference provider used on this path?
+Agent untraceability is mandatory report metadata, not a vector metric, and it
+never enters U, AIVSS, or the remediation timeline. Classical repudiation from
+missing logs is scored in CVSS VI/SI.
 
-PT concerns provenance and change control, not model accuracy, safety quality,
-or attacker privileges.
-
-| Value | Assign when |
-|---|---|
-| H — High deficit | Runtime routing can select an unapproved provider/model; users can supply unverified models/adapters; artifacts are unpinned; or a provider/model can change without an enforceable identifier and change-control record. |
-| M — Moderate deficit | Provider and model/deployment identifiers are fixed and auditable, but artifact integrity or provider-side model contents cannot be independently verified at runtime. |
-| L — Low deficit | Approved provider/model identity is enforced; self-hosted artifacts are digest/signature verified or an equivalent attested deployment control exists; changes require recorded authorization. |
-| X — Insufficient evidence | Runtime model/provider identity, pinning, attestation, or change-control evidence is unavailable. |
-
-Decision procedure:
-
-```text
-dynamic, user-supplied, unapproved, or unpinned -> H
-else fixed identity without verifiable integrity -> M
-else enforced identity plus integrity/change control -> L
-else -> X
-```
-
-For composed inference, assess the least controlled model/provider actually
-reachable on the coherent path.
-
-## CA — Cost Abuse Surface
-
-Question: Do enforced limits keep attacker-triggered token, API, compute, and
-workflow expenditure within the owner’s documented loss tolerance?
-
-Record the maximum aggregate cost or resource consumption available to one
-attacker principal, including retries, recursion, fan-out, asynchronous work,
-and alternate endpoints. A dashboard alert is not a preventive limit.
-
-| Value | Assign when |
-|---|---|
-| W — Wide | No hard pre-execution aggregate ceiling exists, the ceiling exceeds documented loss tolerance, or one attacker can bypass it through aliases/endpoints/shared pools on the assessed path. |
-| M — Moderate | Hard limits exist for some units such as request or session, but aggregate principal/tenant cost, recursion, fan-out, or one reachable resource class is not bounded within the documented tolerance. |
-| N — Narrow | Tested, fail-closed limits bound aggregate consumption for a stable principal and tenant within documented tolerance, including maximum token use, paid calls, recursion/fan-out, queued work, and concurrency. |
-| X — Insufficient evidence | No documented loss tolerance or measured end-to-end resource envelope is available. |
-
-Decision procedure:
-
-```text
-no hard aggregate ceiling, over tolerance, or direct bypass -> W
-else partial/non-aggregate limits                            -> M
-else tested end-to-end fail-closed envelope within tolerance -> N
-else                                                         -> X
-```
-
-Use CVSS VA/SA for realized availability harm. CA records preventive economic
-and resource containment on the path.
-
-## TD — Traceability Deficit
-
-Question: Can responders reconstruct the exploit sequence and bound affected
-assets before the shortest applicable response deadline?
-
-Set the response window before assigning TD. Use the shortest binding
-regulatory, contractual, or organization-approved incident-response objective;
-for an in-scope CVE, include the unmodified BOD 26-04 timeline. Do not use the
-experimental AIVSS overlay, because TD is itself an overlay input. If no
-response window is documented, assign X.
+Question: Can a documented retrieval exercise on the deployment reconstruct the
+ordered security-relevant actions on the path and bound the affected
+principals?
 
 A complete path record contains a stable actor/session ID, timestamped input
 reference or privacy-preserving digest, model/provider/version, retrieved
 context and memory record IDs, policy/approval decisions, extension name and
 version, arguments or protected digest, result/status, downstream principal,
-and correlation/trace ID. Retention must cover the response window, clocks
-must be synchronized, and access controls must preserve integrity.
+and correlation/trace ID.
 
 | Value | Assign when |
 |---|---|
-| H — High deficit | Testing confirms that responders cannot reconstruct the ordered security-relevant actions or identify affected principals because required records are absent, uncorrelated, or overwritten before response. |
-| M — Moderate deficit | The ordered path and affected principals can be reconstructed, but one or more listed fields, integrity controls, correlation links, or required retention guarantees are missing. |
-| L — Low deficit | All listed records are correlated, integrity-protected, queryable, retained through the response window, and verified by a retrieval exercise. |
-| X — Insufficient evidence | No response window is documented, or logging configuration, retention, integrity, or retrieval behavior has not been inspected and tested. |
+| High | The exercise cannot reconstruct the ordered security-relevant actions on the path or cannot bound the affected principals. |
+| Moderate | Both can be reconstructed, but required fields, integrity protection of the records, or verified retention is missing. |
+| Low | Both can be reconstructed, required fields are complete, the records are integrity-protected, and retention is verified. |
+| X | No completed retrieval exercise. |
 
-Decision procedure:
+The input records six observations from the exercise, and the calculator
+derives the value from them: `retrieval_tested`,
+`ordered_actions_reconstructable`, `affected_principals_bounded`,
+`required_fields_complete`, `integrity_protected`, `retention_verified`.
 
-```text
-confirmed unable to reconstruct path/scope -> H
-else reconstructable with listed gaps      -> M
-else complete record verified by exercise  -> L
-else                                       -> X
-```
-
-Storing private chain-of-thought is not required. Observable inputs, context
-references, decisions, calls, and outcomes are sufficient. Redaction is
-compatible with L when stable protected references support reconstruction.
+Retained model reasoning traces are not required for Low. Observable inputs,
+context references, decisions, calls, and outcomes are sufficient, and
+redaction is compatible with Low when stable protected references support
+reconstruction. In incident response, a High value means assuming wide scope
+until reconstruction evidence proves otherwise.
 
 ## Conformance checklist
 
 1. One coherent path and one value per metric.
-2. Eight evidence rationales, each tied to deployment evidence.
+2. Five evidence rationales, each tied to deployment evidence.
 3. `X` used for unresolved evidence rather than guessed severity.
-4. Separate ordered `AIVSS:1.0` vector.
-5. CVSS impact assessed independently.
+4. Separate ordered `AIVSS:1.0/LC/CP/AP/SR/ES` vector on its own line.
+5. CVSS impact assessed independently, and AT consistent with SR.
 6. Any empirical SR claim includes episode `s`, `n`, environment, enforced
    budget, and Wilson bounds.
-7. Any CA claim names the loss tolerance and measured aggregate ceiling.
-8. Any TD:L claim cites a completed retrieval exercise.
+7. An `agent_untraceability` record with the six retrieval-exercise
+   observations; a Low value cites a completed retrieval exercise.

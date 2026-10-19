@@ -2,12 +2,17 @@
   "name": "Agentic AI Vulnerability Scoring System",
   "identifier": "AIVSS",
   "version": "1.0",
-  "description": "Eight-metric Agentic AI exploit-path profile used alongside an unchanged CVSS v4.0 assessment.",
+  "description": "Five-metric Agentic AI exploit-path profile (LC, CP, AP, SR, ES) listed as a separate extension vector beside an unchanged CVSS v4.0 assessment, per the FIRST CVSS v4.0 Extensions Framework.",
   "authoritative_url": "https://github.com/kenhuangus/aivss-v1-candidate",
   "vector_prefix": "AIVSS:1.0",
-  "metric_order": ["LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD"],
+  "metric_order": ["LC", "CP", "AP", "SR", "ES"],
+  "classifying_metrics": ["LC", "CP", "AP", "SR"],
+  "uplift_metrics": ["ES"],
+  "report_metadata": ["agent_untraceability"],
   "input_schema": "schemas/aivss-assessment-input-v1.0.json",
   "report_schema": "schemas/aivss-report-v1.0.json",
   "first_validation_status": "not-submitted",
-  "scoring_status": "experimental-uncalibrated"
+  "scoring_status": "normative-lookup",
+  "effect_class_status": "candidate-unvalidated",
+  "decision_overlay_status": "experimental-uncalibrated"
 }

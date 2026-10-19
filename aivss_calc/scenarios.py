@@ -7,6 +7,7 @@ from typing import Any
 from .ai_metrics import (
     AGENTIC_METRIC_ORDER,
     AGENTIC_METRICS,
+    UNTRACEABILITY_FIELDS,
     classify_sr,
     parse_aivss_vector,
 )
@@ -20,7 +21,8 @@ SCENARIOS: list[dict[str, Any]] = [
         "title": "Direct prompt injection hijacks planning agent goals",
         "summary": "Attacker-supplied instructions override the agent's intended goals via a language-mediated control path.",
         "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:N/SC:H/SI:L/SA:N/E:P",
-        "aivss_vector": "AIVSS:1.0/LC:D/CP:S/AP:C/SR:R/EX:M/PT:M/CA:M/TD:M",
+        "aivss_vector": "AIVSS:1.0/LC:D/CP:S/AP:C/SR:R/ES:M",
+        "agent_untraceability": "Moderate",
         "publicly_exposed": True,
         "automatable": True,
         "technical_impact": "total",
@@ -32,7 +34,8 @@ SCENARIOS: list[dict[str, Any]] = [
         "title": "Agent misuses legitimate tool for unauthorized data export",
         "summary": "A compromised or misled agent invokes an authorized tool outside its intended scope.",
         "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:N/SC:H/SI:N/SA:N/E:P",
-        "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:C/SR:R/EX:M/PT:M/CA:M/TD:L",
+        "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:C/SR:R/ES:M",
+        "agent_untraceability": "Low",
         "publicly_exposed": True,
         "automatable": True,
         "technical_impact": "total",
@@ -44,7 +47,8 @@ SCENARIOS: list[dict[str, Any]] = [
         "title": "Stolen service credential used for lateral agent actions",
         "summary": "Abuse of agent identity or privileges to act on resources beyond the attacker's direct reach.",
         "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H/E:A",
-        "aivss_vector": "AIVSS:1.0/LC:M/CP:N/AP:L/SR:R/EX:M/PT:M/CA:N/TD:L",
+        "aivss_vector": "AIVSS:1.0/LC:M/CP:N/AP:L/SR:R/ES:M",
+        "agent_untraceability": "Low",
         "publicly_exposed": False,
         "automatable": True,
         "technical_impact": "total",
@@ -55,8 +59,9 @@ SCENARIOS: list[dict[str, Any]] = [
         "risk_category": "ASI04",
         "title": "Compromised MCP plugin supplies malicious tool definitions",
         "summary": "Untrusted supply-chain component alters agent capabilities or tool schemas at runtime.",
-        "cvss_vector": "CVSS:4.0/AV:N/AC:H/AT:N/PR:N/UI:N/VC:H/VI:H/VA:N/SC:H/SI:L/SA:N/E:P",
-        "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:L/SR:P/EX:W/PT:H/CA:M/TD:M",
+        "cvss_vector": "CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:H/VA:N/SC:H/SI:L/SA:N/E:P",
+        "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:L/SR:P/ES:W",
+        "agent_untraceability": "Moderate",
         "publicly_exposed": True,
         "automatable": False,
         "technical_impact": "total",
@@ -68,7 +73,8 @@ SCENARIOS: list[dict[str, Any]] = [
         "title": "Code interpreter executes attacker-supplied shell commands",
         "summary": "Agent reaches a code-execution path and runs attacker-controlled instructions.",
         "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N/E:P",
-        "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:N/SR:R/EX:M/PT:M/CA:W/TD:L",
+        "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:N/SR:R/ES:M",
+        "agent_untraceability": "Low",
         "publicly_exposed": True,
         "automatable": True,
         "technical_impact": "total",
@@ -80,7 +86,8 @@ SCENARIOS: list[dict[str, Any]] = [
         "title": "Adversarial content in agent memory biases later sessions",
         "summary": "Poisoned context persists across sessions and influences future agent decisions.",
         "cvss_vector": "CVSS:4.0/AV:N/AC:H/AT:N/PR:N/UI:N/VC:H/VI:L/VA:L/SC:H/SI:N/SA:N/E:P",
-        "aivss_vector": "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H",
+        "aivss_vector": "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W",
+        "agent_untraceability": "High",
         "publicly_exposed": True,
         "automatable": True,
         "technical_impact": "total",
@@ -92,7 +99,8 @@ SCENARIOS: list[dict[str, Any]] = [
         "title": "Unsigned agent-to-agent messages allow instruction relay",
         "summary": "Inter-agent messages lack authentication, enabling cross-agent propagation of malicious intent.",
         "cvss_vector": "CVSS:4.0/AV:A/AC:L/AT:N/PR:N/UI:N/VC:L/VI:H/VA:N/SC:H/SI:L/SA:N/E:P",
-        "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:R/EX:W/PT:H/CA:M/TD:M",
+        "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:R/ES:W",
+        "agent_untraceability": "Moderate",
         "publicly_exposed": False,
         "automatable": True,
         "technical_impact": "total",
@@ -104,7 +112,8 @@ SCENARIOS: list[dict[str, Any]] = [
         "title": "Faulty planner triggers cascading downstream task failures",
         "summary": "A single agent fault propagates through orchestration to many dependent workflows.",
         "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:H/VA:H/SC:H/SI:H/SA:L/E:P",
-        "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:P/EX:W/PT:M/CA:W/TD:H",
+        "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:P/ES:W",
+        "agent_untraceability": "High",
         "publicly_exposed": True,
         "automatable": False,
         "technical_impact": "total",
@@ -115,8 +124,9 @@ SCENARIOS: list[dict[str, Any]] = [
         "risk_category": "ASI09",
         "title": "Social engineering of human approver via forged agent summaries",
         "summary": "Attacker exploits human trust in agent-generated summaries to obtain unauthorized approvals.",
-        "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:P/VC:L/VI:H/VA:N/SC:H/SI:N/SA:N/E:P",
-        "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:C/SR:P/EX:N/PT:L/CA:N/TD:H",
+        "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:P/VC:L/VI:H/VA:N/SC:H/SI:N/SA:N/E:P",
+        "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:C/SR:P/ES:N",
+        "agent_untraceability": "High",
         "publicly_exposed": True,
         "automatable": False,
         "technical_impact": "partial",
@@ -128,7 +138,8 @@ SCENARIOS: list[dict[str, Any]] = [
         "title": "Compromised worker agent operates outside policy envelope",
         "summary": "A rogue or hijacked agent continues autonomous operation beyond defined policy bounds.",
         "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H/E:A",
-        "aivss_vector": "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:W/TD:H",
+        "aivss_vector": "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W",
+        "agent_untraceability": "High",
         "publicly_exposed": True,
         "automatable": True,
         "technical_impact": "total",
@@ -166,56 +177,8 @@ def scenario_payload(
                 "A production-equivalent fixture records 18 successful "
                 "independent episodes out of 30, each from clean state with the "
                 "hard production budget of three attempts for one stable principal; "
-                "one-sided 95% Wilson bounds are 0.451 and 0.733."
-            )
-        elif name == "PT" and value == "H":
-            detail = (
-                "Runtime routing can select an unapproved provider and unpinned "
-                "model, so no enforceable provider/model identifier or artifact "
-                "integrity claim exists for this path."
-            )
-        elif name == "PT" and value == "M":
-            detail = (
-                "Synthetic provider ref-provider and deployment model-ref-v1 are "
-                "fixed under config-ref-v1 and changes are auditable, but provider-"
-                "side artifact contents cannot be verified at runtime."
-            )
-        elif name == "PT" and value == "L":
-            detail = (
-                "Synthetic provider ref-provider, model-ref-v1, and config-ref-v1 "
-                "are enforced; artifact digest sha256:synthetic is verified and "
-                "changes require recorded authorization."
-            )
-        elif name == "CA" and value == "W":
-            detail = (
-                "No finite hard aggregate pre-execution ceiling exists for all "
-                "attacker-reachable billable resources."
-            )
-        elif name == "CA" and value == "M":
-            detail = (
-                "A finite hard request ceiling is enforced, but its aggregate "
-                "coverage across a stable principal and tenant is incomplete."
-            )
-        elif name == "CA" and value == "N":
-            detail = (
-                "Tested fail-closed principal and tenant ceilings bound tokens, paid "
-                "calls, queued work, fan-out, retries, and concurrency."
-            )
-        elif name == "TD" and value == "H":
-            detail = (
-                "A retrieval test cannot reconstruct ordered actions or bound "
-                "affected principals."
-            )
-        elif name == "TD" and value == "M":
-            detail = (
-                "A retrieval test reconstructs ordered actions and principals but "
-                "finds missing "
-                "integrity or retention evidence."
-            )
-        elif name == "TD" and value == "L":
-            detail = (
-                "A retrieval exercise verifies all required correlated, "
-                "integrity-protected, and retained records."
+                "one-sided 95% Wilson bounds are 0.451 and 0.733. Repeated attempts "
+                "are needed, so the CVSS vector records AT:P."
             )
         else:
             detail = AGENTIC_METRICS[name][value][1]
@@ -252,53 +215,38 @@ def scenario_payload(
                 )
             else:
                 record["method"] = "insufficient-evidence"
-        elif name == "CA":
-            observations = {
-                "W": (False, False, False, False),
-                "M": (True, False, True, False),
-                "N": (True, True, True, False),
-                "X": (None, None, None, None),
-            }[value]
-            record.update(
-                dict(
-                    zip(
-                        (
-                            "ceiling_defined",
-                            "coverage_complete",
-                            "fail_closed",
-                            "bypass_demonstrated",
-                        ),
-                        observations,
-                        strict=True,
-                    )
-                )
-            )
-        elif name == "TD":
-            observations = {
-                "H": (True, False, False, False, False, False),
-                "M": (True, True, True, False, False, False),
-                "L": (True, True, True, True, True, True),
-                "X": (False, None, None, None, None, None),
-            }[value]
-            record.update(
-                dict(
-                    zip(
-                        (
-                            "retrieval_tested",
-                            "ordered_actions_reconstructable",
-                            "affected_principals_bounded",
-                            "required_fields_complete",
-                            "integrity_protected",
-                            "retention_verified",
-                        ),
-                        observations,
-                        strict=True,
-                    )
-                )
-            )
         metric_evidence[name] = record
+    untraceability = scenario["agent_untraceability"]
+    observations = {
+        "High": (True, False, False, False, False, False),
+        "Moderate": (True, True, True, False, False, False),
+        "Low": (True, True, True, True, True, True),
+        "X": (False, None, None, None, None, None),
+    }[untraceability]
+    untraceability_detail = {
+        "High": "A retrieval test cannot reconstruct ordered actions or bound affected principals.",
+        "Moderate": (
+            "A retrieval test reconstructs ordered actions and principals but finds "
+            "missing integrity or retention evidence."
+        ),
+        "Low": (
+            "A retrieval exercise verifies all required correlated, "
+            "integrity-protected, and retained records."
+        ),
+        "X": "No retrieval exercise has been completed.",
+    }[untraceability]
+    agent_untraceability: dict[str, Any] = {
+        "rationale": (
+            f"Synthetic reference fact for {scenario['finding_id']}: "
+            f"{untraceability_detail}"
+        ),
+        "evidence_refs": [f"fixture://{scenario['finding_id']}/untraceability"],
+        **dict(zip(UNTRACEABILITY_FIELDS, observations, strict=True)),
+    }
+    payload = {key: val for key, val in scenario.items() if key != "agent_untraceability"}
     return {
-        **scenario,
+        **payload,
+        "agent_untraceability": agent_untraceability,
         "path_id": f"{scenario['finding_id']}-PATH-1",
         "agentic_applicability": {
             "model_directed_goal_pursuit": True,

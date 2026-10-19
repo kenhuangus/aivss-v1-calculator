@@ -67,9 +67,18 @@ def test_presets_match_python(browser, base_url):
         )
         page.wait_for_function(
             "score => document.querySelector('#result-score').textContent === score",
-            arg=f"{row['mode1_aivss']:.1f}",
+            arg=f"{row['aivss']:.1f}",
+        )
+        # Consecutive presets can share an AIVSS value, so also wait for the
+        # vector and CVSS-BTE of this preset before reading the timelines.
+        page.wait_for_function(
+            "([v, c]) => document.querySelector('#out-aivss').textContent === v"
+            " && document.querySelector('#result-cvss').textContent === c",
+            arg=[row["aivss_vector"], f"{row['cvss_bte']:.1f}"],
         )
         assert page.text_content("#result-class") == row["agentic_effect_class"]
+        assert page.text_content("#result-u") == str(row["agentic_uplift_u"])
+        assert page.text_content("#result-untraceability") == row["agent_untraceability"]
         keys = page.eval_on_selector_all(
             "#decision-result .timeline-key", "els => els.map(e => e.textContent)"
         )
@@ -84,16 +93,18 @@ def test_share_link_restores_edited_finding(browser, base_url):
         ".opt", has_text="Low"
     ).click()
     page.wait_for_function(
-        "() => document.querySelector('#result-score').textContent === '8.7'"
+        "() => document.querySelector('#result-cvss').textContent === '8.7'"
     )
+    assert page.text_content("#result-score") == "9.5"
     assert "Custom" in page.text_content("#preset-status")
     shared = page.url
     assert "AC:L" in shared
 
     reopened = _open(browser, shared, errors)
     reopened.wait_for_function(
-        "() => document.querySelector('#result-score').textContent === '8.7'"
+        "() => document.querySelector('#result-cvss').textContent === '8.7'"
     )
+    assert reopened.text_content("#result-untraceability") == "High"
     assert reopened.text_content("#result-class") == "A2"
     assert errors == []
 

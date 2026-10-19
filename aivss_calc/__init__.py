@@ -1,7 +1,10 @@
 """AIVSS 1.0 reference calculator.
 
-CVSS severity remains independently reproducible. AIVSS adds a separate
-eight-metric profile as parallel metadata.
+CVSS severity remains independently reproducible as CVSS-BTE. AIVSS 1.0
+adds a five-metric agentic profile (LC, CP, AP, SR, ES), derives an Agentic
+Effect Class (A0, A1, A2, AX) and reads the AIVSS score from the published
+lookup table (Table 6 of the specification). Agent untraceability is a
+separate decision input, not a score metric.
 """
 
 from .ai_metrics import (
@@ -10,13 +13,19 @@ from .ai_metrics import (
     AI_METRICS,
     AIProfile,
     SRClassification,
+    UNTRACEABILITY_LABELS,
+    check_sr_at,
     classify_ca,
     classify_sr,
     classify_td,
+    classify_untraceability,
+    convert_legacy_vector,
     parse_aivss_vector,
     split_ai_vector,
     validate_metric_evidence,
+    validate_untraceability,
 )
+from .lookup import AIVSS_BASIS, TABLE_6, aivss_lookup, cvss_nomenclature
 from .assessment import (
     Assessment,
     OrgContext,
@@ -48,6 +57,7 @@ __version__ = CALCULATOR_VERSION
 
 __all__ = [
     "AIProfile",
+    "AIVSS_BASIS",
     "AGENTIC_EFFECT_CLASS_LABELS",
     "AI_METRICS",
     "AI_METRIC_ORDER",
@@ -60,14 +70,20 @@ __all__ = [
     "Provenance",
     "SRClassification",
     "SPEC_VERSION",
+    "TABLE_6",
     "TIMELINE_LABELS",
+    "UNTRACEABILITY_LABELS",
     "V08_CATEGORY_CROSSWALK",
     "__version__",
+    "aivss_lookup",
     "apply_exploit_maturity",
     "assess",
     "assessment_from_payload",
     "bod_timeline",
+    "check_sr_at",
     "compute_priority",
+    "convert_legacy_vector",
+    "cvss_nomenclature",
     "decide",
     "macrovector",
     "macrovector_score",
@@ -80,7 +96,9 @@ __all__ = [
     "classify_sr",
     "classify_ca",
     "classify_td",
+    "classify_untraceability",
     "parse_aivss_vector",
     "split_ai_vector",
     "validate_metric_evidence",
+    "validate_untraceability",
 ]

@@ -31,7 +31,7 @@
       <a href="https://github.com/kenhuangus/aivss-v1-candidate" target="_blank" rel="noopener">GitHub</a>
       <a href="https://aivss.owasp.org/" target="_blank" rel="noopener">OWASP AIVSS</a>
       <a href="https://github.com/kenhuangus/aivss-v1-candidate/blob/main/docs/METRIC-RUBRIC.md" target="_blank" rel="noopener">Metric Rubric</a>
-      <a href="https://github.com/kenhuangus/aivss-v1-candidate/blob/main/docs/SSVC.md" target="_blank" rel="noopener">SSVC Layer 3</a>
+      <a href="https://github.com/kenhuangus/aivss-v1-candidate/blob/main/docs/SSVC.md" target="_blank" rel="noopener">SSVC / BOD 26-04</a>
     </nav>
   </header>
 
@@ -41,8 +41,9 @@
       <h1 class="hero-title">Score an agentic AI finding</h1>
       <p class="hero-lede">
         Start from an OWASP Agentic Top 10 example, or set the metrics yourself.
-        The severity number stays ordinary CVSS v4.0. You also get an effect class
-        and, if you need one, a CISA BOD 26-04 remediation deadline.
+        AIVSS is read from a published lookup table by the CVSS-BTE band and the
+        Agentic Effect Class, and is never lower than the unchanged CVSS-BTE shown
+        beside it. If you need one, you also get a CISA BOD 26-04 remediation deadline.
       </p>
     </div>
   </section>
@@ -65,7 +66,7 @@
           <input id="cvss-input" type="text" spellcheck="false" placeholder="CVSS:4.0/AV:N/AC:L/…" />
         </label>
         <label class="field">
-          <span class="field-label" data-hint="Paste the separate AIVSS:1.0 extension vector holding all eight agentic metrics.">AIVSS vector</span>
+          <span class="field-label" data-hint="Paste the separate AIVSS:1.0 extension vector holding the five agentic metrics (LC, CP, AP, SR, ES). A draft eight-metric vector is converted automatically.">AIVSS vector</span>
           <input id="aivss-input" type="text" spellcheck="false" placeholder="AIVSS:1.0/LC:D/CP:C/…" />
         </label>
         <button type="submit" class="btn btn-outline btn-sm" data-hint="Validate both vectors and load them into the metric buttons below.">Load vectors</button>
@@ -91,18 +92,24 @@
 
           <fieldset class="panel metric-panel">
             <legend>Agentic AI Profile · classifying metrics</legend>
-            <p class="panel-note">LC, CP, AP and SR determine the Agentic AI Effect Class. X records insufficient evidence; it is not a benign default.</p>
+            <p class="panel-note">LC, CP, AP and SR determine the Agentic Effect Class through an ordered ladder (A2, A1, AX, A0). X records insufficient evidence and makes the result provisional; it is not a benign default.</p>
             <div id="aivss-classifying" class="metric-groups"></div>
           </fieldset>
 
           <fieldset class="panel metric-panel">
-            <legend>Agentic AI Profile · assurance metrics</legend>
-            <p class="panel-note">EX, PT, CA and TD are descriptive and do not change the score.</p>
-            <div id="aivss-assurance" class="metric-groups"></div>
+            <legend>Agentic AI Profile · exposure surface</legend>
+            <p class="panel-note">ES enters only the informative Agentic Uplift U (Table 5). It does not change the Effect Class or the AIVSS score.</p>
+            <div id="aivss-uplift" class="metric-groups"></div>
+          </fieldset>
+
+          <fieldset class="panel metric-panel">
+            <legend>Agent untraceability · report metadata</legend>
+            <p class="panel-note">Record the result of a documented retrieval exercise on the deployment. It is mandatory metadata, not part of the vector, U or the AIVSS score.</p>
+            <div id="untraceability" class="metric-groups"></div>
           </fieldset>
 
           <fieldset class="panel metric-panel" id="decision-panel">
-            <legend>Remediation timeline · SSVC / BOD 26-04 (Level 2)</legend>
+            <legend>Remediation timeline · SSVC / BOD 26-04 (Conformance Level 2)</legend>
             <label class="toggle">
               <input id="decision-enabled" type="checkbox" />
               <span>Compute a remediation timeline</span>
@@ -153,7 +160,7 @@
             <p id="engine-status" class="engine-status">Loading calculator runtime…</p>
             <div id="result" hidden>
               <div class="score-head">
-                <span class="score-label">AIVSS severity (CVSS-BTE)</span>
+                <span class="score-label">AIVSS (Table 6 lookup)</span>
                 <div class="score-line">
                   <span id="result-score" class="result-score">—</span>
                   <span id="result-rating" class="rating">—</span>
@@ -166,10 +173,24 @@
                   <dd><span id="result-class" class="class-pill">—</span> <span id="result-class-label"></span></dd>
                 </div>
                 <div>
+                  <dt id="result-cvss-label">CVSS-BTE</dt>
+                  <dd><span id="result-cvss">—</span> <span id="result-cvss-band" class="muted"></span></dd>
+                </div>
+                <div>
+                  <dt>Agentic Uplift U</dt>
+                  <dd><span id="result-u">—</span> <span class="muted">(informative)</span></dd>
+                </div>
+                <div>
+                  <dt>Untraceability</dt>
+                  <dd><span id="result-untraceability">—</span></dd>
+                </div>
+                <div>
                   <dt>MacroVector</dt>
                   <dd><code id="result-macrovector">—</code></dd>
                 </div>
               </dl>
+              <p id="result-provisional" class="inline-warning small" hidden></p>
+              <p id="result-migration" class="muted small" hidden></p>
               <p id="result-class-status" class="muted small"></p>
               <div class="vector-out">
                 <div class="vector-row">
@@ -200,7 +221,7 @@
       <div class="section-head">
         <h2 class="section-title">OWASP Agentic Top 10 examples</h2>
         <p class="section-lede">
-          Synthetic reference fixtures demonstrating AIVSS calculation, SSVC Layer 3
+          Synthetic reference fixtures demonstrating the AIVSS lookup, SSVC / BOD 26-04
           remediation analogies, and the A2 candidate overlay — not real incidents.
           Open any example in the calculator to explore it.
         </p>
@@ -211,7 +232,7 @@
           <span class="field-label" data-hint="Reorder the example cards.">Sort by</span>
           <select id="sort-by">
             <option value="asi">ASI ID</option>
-            <option value="mode1" selected>AIVSS score</option>
+            <option value="aivss" selected>AIVSS score</option>
             <option value="class">Effect class</option>
           </select>
         </label>

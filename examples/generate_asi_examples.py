@@ -23,6 +23,9 @@ def main() -> None:
 
         report = assess(assessment_from_payload(payload))
         validate_report(report)
+        if scenario["risk_category"] == "ASI06":
+            report_path = EXAMPLES / "asi06-report.json"
+            report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         decision = report["decision"]
         results.append(
             {
@@ -31,8 +34,13 @@ def main() -> None:
                 "title": scenario["title"],
                 "cvss_vector": report["cvss"]["vector"],
                 "aivss_vector": report["agentic_ai_profile"]["vector"],
-                "mode1_aivss": report["scores"]["mode1_interpretation"]["aivss"],
-                "mode1_status": report["scores"]["mode1_interpretation"]["status"],
+                "cvss_bte": report["scores"]["cvss_bte"],
+                "cvss_nomenclature": report["scores"]["cvss_nomenclature"],
+                "aivss": report["scores"]["aivss"],
+                "aivss_band": report["scores"]["aivss_band"],
+                "agentic_uplift_u": report["scores"]["agentic_uplift_u"],
+                "status": report["scores"]["status"],
+                "agent_untraceability": report["agent_untraceability"]["value"],
                 "agentic_effect_class": report["agentic_ai_profile"][
                     "agentic_effect_class"
                 ],

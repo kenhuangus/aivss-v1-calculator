@@ -11,6 +11,7 @@
     "cvss_vector",
     "aivss_vector",
     "metric_evidence",
+    "agent_untraceability",
     "agentic_applicability",
     "provenance"
   ],
@@ -19,10 +20,7 @@
     "path_id": {"type": "string", "minLength": 1},
     "title": {"type": "string", "minLength": 1},
     "summary": {"type": "string", "minLength": 1},
-    "risk_category": {
-      "type": "string",
-      "pattern": "^(ASI(0[1-9]|10)|MAESTRO-EXTENDED)$"
-    },
+    "risk_category": {"type": "string", "pattern": "^(ASI(0[1-9]|10)|MAESTRO-EXTENDED)$"},
     "taxonomy_metadata": {
       "type": "object",
       "additionalProperties": false,
@@ -46,11 +44,11 @@
     "exploit_maturity_unresolved": {"type": "boolean"},
     "cvss_vector": {
       "type": "string",
-      "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
+      "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
     },
     "aivss_vector": {
       "type": "string",
-      "pattern": "^AIVSS:1\\.0/LC:(D|I|M|N|X)/CP:(C|S|N|X)/AP:(L|C|N|X)/SR:(R|P|U|X)/EX:(W|M|N|X)/PT:(H|M|L|X)/CA:(W|M|N|X)/TD:(H|M|L|X)$"
+      "pattern": "^AIVSS:1\\.0/LC:(D|I|M|N|X)/CP:(C|S|N|X)/AP:(L|C|N|X)/SR:(R|P|U|X)/ES:(W|M|N|X)$"
     },
     "agentic_applicability": {
       "type": "object",
@@ -65,28 +63,22 @@
         "model_directed_goal_pursuit": {"const": true},
         "action_selection_or_sequencing": {"const": true},
         "rationale": {"type": "string", "minLength": 1},
-        "evidence_refs": {
-          "type": "array",
-          "minItems": 1,
-          "items": {"type": "string", "minLength": 1}
-        }
+        "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
       }
     },
     "metric_evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD"],
+      "required": ["LC", "CP", "AP", "SR", "ES"],
       "properties": {
         "LC": {"$ref": "#/$defs/metricEvidence"},
         "CP": {"$ref": "#/$defs/metricEvidence"},
         "AP": {"$ref": "#/$defs/metricEvidence"},
         "SR": {"$ref": "#/$defs/metricEvidence"},
-        "EX": {"$ref": "#/$defs/metricEvidence"},
-        "PT": {"$ref": "#/$defs/metricEvidence"},
-        "CA": {"$ref": "#/$defs/metricEvidence"},
-        "TD": {"$ref": "#/$defs/metricEvidence"}
+        "ES": {"$ref": "#/$defs/metricEvidence"}
       }
     },
+    "agent_untraceability": {"$ref": "#/$defs/untraceabilityEvidence"},
     "evidence": {
       "type": "object",
       "additionalProperties": false,
@@ -130,23 +122,16 @@
       "required": ["assessor_kind", "assessed_at"],
       "properties": {
         "assessor": {
-          "oneOf": [
-            {"type": "string", "minLength": 1},
-            {"type": "null"}
-          ]
+          "oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]
         },
-        "assessor_kind": {"enum": ["human", "scanner", "llm_assisted", "imported"]},
+        "assessor_kind": {
+          "enum": ["human", "scanner", "llm_assisted", "imported"]
+        },
         "tool": {
-          "oneOf": [
-            {"type": "string", "minLength": 1},
-            {"type": "null"}
-          ]
+          "oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]
         },
         "tool_version": {
-          "oneOf": [
-            {"type": "string", "minLength": 1},
-            {"type": "null"}
-          ]
+          "oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]
         },
         "assessed_at": {
           "type": "string",
@@ -158,24 +143,37 @@
   "allOf": [
     {
       "if": {
+        "required": ["aivss_vector"],
+        "properties": {"aivss_vector": {"pattern": "/SR:(P|U)/"}}
+      },
+      "then": {
+        "properties": {
+          "cvss_vector": {
+            "$comment": "SR:P or SR:U requires effective AT:P: MAT:P, or AT:P without MAT:N.",
+            "anyOf": [
+              {"pattern": "/MAT:P(/|$)"},
+              {
+                "allOf": [{"pattern": "/AT:P(/|$)"}, {"not": {"pattern": "/MAT:N(/|$)"}}]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
         "required": ["risk_category"],
         "properties": {"risk_category": {"const": "MAESTRO-EXTENDED"}}
       },
       "then": {"required": ["taxonomy_metadata"]},
-      "else": {
-        "not": {"required": ["taxonomy_metadata"]}
-      }
+      "else": {"not": {"required": ["taxonomy_metadata"]}}
     },
     {
       "if": {
         "required": ["include_decision"],
         "properties": {"include_decision": {"const": false}}
       },
-      "else": {
-        "required": [
-          "decision_data_observed_at"
-        ]
-      }
+      "else": {"required": ["decision_data_observed_at"]}
     },
     {
       "if": {
@@ -215,12 +213,7 @@
           }
         ]
       },
-      "then": {
-        "properties": {
-          "evidence": {"required": ["cisa_kev"]}
-        },
-        "required": ["evidence"]
-      }
+      "then": {"properties": {"evidence": {"required": ["cisa_kev"]}}, "required": ["evidence"]}
     },
     {
       "if": {
@@ -228,10 +221,7 @@
           {
             "required": ["evidence"],
             "properties": {
-              "evidence": {
-                "required": ["cisa_kev"],
-                "properties": {"cisa_kev": {"const": true}}
-              }
+              "evidence": {"required": ["cisa_kev"], "properties": {"cisa_kev": {"const": true}}}
             }
           },
           {
@@ -243,10 +233,7 @@
         ]
       },
       "then": {
-        "required": [
-          "vulnrichment_automatable",
-          "vulnrichment_technical_impact"
-        ]
+        "required": ["vulnrichment_automatable", "vulnrichment_technical_impact"]
       }
     }
   ],
@@ -257,17 +244,9 @@
       "required": ["rationale", "evidence_refs"],
       "properties": {
         "rationale": {"type": "string", "minLength": 1},
-        "evidence_refs": {
-          "type": "array",
-          "minItems": 1,
-          "items": {"type": "string", "minLength": 1}
-        },
+        "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
         "method": {
-          "enum": [
-            "deterministic-proof",
-            "empirical",
-            "insufficient-evidence"
-          ]
+          "enum": ["deterministic-proof", "empirical", "insufficient-evidence"]
         },
         "deterministic_outcome": {"enum": ["success", "failure", null]},
         "successes": {"type": ["integer", "null"], "minimum": 0},
@@ -276,20 +255,27 @@
         "production_equivalent": {"type": ["boolean", "null"]},
         "budget_enforced": {"type": ["boolean", "null"]},
         "independent": {"type": ["boolean", "null"]},
-        "lower_bound": {
-          "type": ["number", "null"],
-          "minimum": 0,
-          "maximum": 1
-        },
-        "upper_bound": {
-          "type": ["number", "null"],
-          "minimum": 0,
-          "maximum": 1
-        },
-        "ceiling_defined": {"type": ["boolean", "null"]},
-        "coverage_complete": {"type": ["boolean", "null"]},
-        "fail_closed": {"type": ["boolean", "null"]},
-        "bypass_demonstrated": {"type": ["boolean", "null"]},
+        "lower_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "upper_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+      }
+    },
+    "untraceabilityEvidence": {
+      "type": "object",
+      "description": "Agent untraceability retrieval-exercise record (High, Moderate, Low or X). A decision input; it is not part of the AIVSS vector or score.",
+      "additionalProperties": false,
+      "required": [
+        "rationale",
+        "evidence_refs",
+        "retrieval_tested",
+        "ordered_actions_reconstructable",
+        "affected_principals_bounded",
+        "required_fields_complete",
+        "integrity_protected",
+        "retention_verified"
+      ],
+      "properties": {
+        "rationale": {"type": "string", "minLength": 1},
+        "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
         "retrieval_tested": {"type": ["boolean", "null"]},
         "ordered_actions_reconstructable": {"type": ["boolean", "null"]},
         "affected_principals_bounded": {"type": ["boolean", "null"]},

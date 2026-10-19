@@ -1,10 +1,13 @@
-"""The eight-metric AIVSS Agentic AI profile.
+"""The AIVSS 1.0 Agentic AI profile (condensed specification).
 
-LC, CP, AP, and SR classify agentic effect. EX, PT, CA, and TD record
-descriptive assurance deficits on the exploitation path. Every conformant
-profile records all eight metrics.
+Five categorical metrics describe residual agentic properties that CVSS-BTE does
+not measure. LC, CP, AP and SR assign the Agentic Effect Class by an ordered
+rule ladder (A2, A1, AX, A0; first match wins). ES enters only Lookup Table U.
+Agent untraceability is mandatory report metadata and never changes a score.
 
-The class is an ordinal label, not a cardinal score.
+Labels are ordinal categories, never numbers: no arithmetic is performed on
+them. Legacy eight-metric vectors (EX, PT, CA, TD) are accepted only through
+``convert_legacy_vector`` for migration.
 """
 
 from __future__ import annotations
@@ -71,13 +74,14 @@ CP_VALUES: dict[str, tuple[str, str]] = {
 AP_VALUES: dict[str, tuple[str, str]] = {
     "L": (
         "Lateral",
-        "Compromised intent, instructions, memory, or authority crosses a trust boundary "
-        "to other agents, other tenants, or downstream systems.",
+        "Compromised intent or authority crosses a trust boundary into another agent, "
+        "tenant, principal or policy domain. Impact on downstream systems is scored "
+        "in CVSS SC/SI/SA, not here.",
     ),
     "C": (
         "Contained",
-        "Propagation occurs within the agent's own tool and action scope but does not "
-        "cross a trust boundary.",
+        "Influence relays across agent components under the same principal and policy "
+        "domain without crossing a trust boundary.",
     ),
     "N": ("None", "Effect is confined to the initially affected component."),
     "X": (
@@ -110,28 +114,30 @@ SR_VALUES: dict[str, tuple[str, str]] = {
     ),
 }
 
-EX_VALUES: dict[str, tuple[str, str]] = {
+ES_VALUES: dict[str, tuple[str, str]] = {
     "W": (
         "Wide",
-        "A reachable extension is dynamic or unvetted, or its identity, callable "
-        "operations, arguments, credentials, or authority are not independently "
-        "constrained for the assessed deployment.",
+        "A reachable tool, MCP server, skill or plugin is dynamic or unvetted, or its "
+        "identity, callable operations, arguments or credentials are not independently "
+        "constrained on the assessed path.",
     ),
     "M": (
         "Managed",
-        "One or more vetted extensions are fixed and allowlisted, with schema-validated "
-        "arguments and least-privilege credentials enforced outside model output.",
+        "Extensions are allowlisted, but material gaps remain in argument schemas, "
+        "credentials or callable operations.",
     ),
     "N": (
-        "None",
-        "No security-relevant extensions on the exploitation path — read-only responses, "
-        "fixed deterministic actions, or no tool/skill/MCP/plugin/workflow invocation.",
+        "None or narrow",
+        "No security-relevant dynamic extension on the path, or a fixed, allowlisted, "
+        "least-privilege binding enforced outside model output.",
     ),
     "X": (
         "Insufficient evidence",
-        "Available evidence cannot determine the extension surface.",
+        "Available evidence cannot determine the extension binding surface.",
     ),
 }
+
+EX_VALUES = ES_VALUES  # legacy alias (AIVSS 1.0 draft name for ES)
 
 PT_VALUES: dict[str, tuple[str, str]] = {
     "H": (
@@ -335,11 +341,42 @@ def classify_td(
     return "M"
 
 
-ASSURANCE_AGENTIC_METRICS: dict[str, dict[str, tuple[str, str]]] = {
-    "EX": EX_VALUES,
-    "PT": PT_VALUES,
-    "CA": CA_VALUES,
-    "TD": TD_VALUES,
+
+
+def classify_untraceability(**observations: bool | None) -> str:
+    """Agent untraceability value (High, Moderate, Low or X) from a retrieval exercise."""
+    return UNTRACEABILITY_LABELS[classify_td(**observations)]
+
+
+UNTRACEABILITY_LABELS: dict[str, str] = {
+    "H": "High",
+    "M": "Moderate",
+    "L": "Low",
+    "X": "X",
+}
+UNTRACEABILITY_CODES: dict[str, str] = {v: k for k, v in UNTRACEABILITY_LABELS.items()}
+UNTRACEABILITY_FIELDS: tuple[str, ...] = (
+    "retrieval_tested",
+    "ordered_actions_reconstructable",
+    "affected_principals_bounded",
+    "required_fields_complete",
+    "integrity_protected",
+    "retention_verified",
+)
+UNTRACEABILITY_DEFINITIONS: dict[str, str] = {
+    "High": (
+        "A retrieval exercise cannot reconstruct the ordered security-relevant "
+        "actions on the path or cannot bound the affected principals."
+    ),
+    "Moderate": (
+        "Both can be reconstructed, but required fields, integrity protection of "
+        "the records, or verified retention is missing."
+    ),
+    "Low": (
+        "Both can be reconstructed, required fields are complete, the records are "
+        "integrity-protected, and retention is verified."
+    ),
+    "X": "No completed retrieval exercise.",
 }
 
 CLASSIFYING_AGENTIC_METRICS: dict[str, dict[str, tuple[str, str]]] = {
@@ -349,27 +386,37 @@ CLASSIFYING_AGENTIC_METRICS: dict[str, dict[str, tuple[str, str]]] = {
     "SR": SR_VALUES,
 }
 
-ADJUSTMENT_AGENTIC_METRICS = ASSURANCE_AGENTIC_METRICS
+# ES is the only metric that is not a classifying input; it enters Table 5 (U).
+UPLIFT_AGENTIC_METRICS: dict[str, dict[str, tuple[str, str]]] = {"ES": ES_VALUES}
+ASSURANCE_AGENTIC_METRICS = UPLIFT_AGENTIC_METRICS  # backward-compatible name
+ADJUSTMENT_AGENTIC_METRICS = UPLIFT_AGENTIC_METRICS
 
 AGENTIC_METRICS: dict[str, dict[str, tuple[str, str]]] = {
     **CLASSIFYING_AGENTIC_METRICS,
-    **ASSURANCE_AGENTIC_METRICS,
+    **UPLIFT_AGENTIC_METRICS,
 }
 
 AI_METRICS = AGENTIC_METRICS
 
-AGENTIC_METRIC_ORDER: tuple[str, ...] = ("LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD")
+AGENTIC_METRIC_ORDER: tuple[str, ...] = ("LC", "CP", "AP", "SR", "ES")
 AI_METRIC_ORDER = AGENTIC_METRIC_ORDER
+
+# Draft (pre-condensed) eight-metric order, accepted only for migration.
+LEGACY_METRIC_ORDER: tuple[str, ...] = ("LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD")
+LEGACY_METRICS: dict[str, dict[str, tuple[str, str]]] = {
+    **CLASSIFYING_AGENTIC_METRICS,
+    "EX": ES_VALUES,
+    "PT": PT_VALUES,
+    "CA": CA_VALUES,
+    "TD": TD_VALUES,
+}
 
 AGENTIC_METRIC_NAMES: dict[str, str] = {
     "LC": "Language-Mediated Control",
-    "CP": "Context and Memory Persistence",
-    "AP": "Agentic Propagation",
+    "CP": "Context Persistence",
+    "AP": "Agentic Control Propagation",
     "SR": "Stochastic Exploit Reliability",
-    "EX": "Extension Surface",
-    "PT": "Provider Trust Deficit",
-    "CA": "Cost Abuse Surface",
-    "TD": "Traceability Deficit",
+    "ES": "Extension Binding Surface",
 }
 
 AGENTIC_METRIC_SUMMARIES: dict[str, str] = {
@@ -382,79 +429,57 @@ AGENTIC_METRIC_SUMMARIES: dict[str, str] = {
         "outlives the session that introduced it."
     ),
     "AP": (
-        "How far the effect travels: contained in the agent's own scope, or across "
-        "a trust boundary to other agents, tenants, or downstream systems."
+        "Whether compromised intent or authority crosses a trust boundary into "
+        "another agent, tenant, principal or policy domain."
     ),
     "SR": (
-        "How reliably the exploit succeeds within the enforced production retry "
-        "budget, given that model behaviour is non-deterministic."
+        "How reliably the exploit succeeds within the production retry budget. "
+        "SR refines CVSS AT and must agree with it: SR:P or SR:U requires AT:P."
     ),
-    "EX": (
+    "ES": (
         "How tightly the tools, skills, MCP servers and plugins reachable on the "
-        "exploitation path are constrained."
-    ),
-    "PT": (
-        "Whether the provider, model and deployment configuration are enforced, "
-        "auditable and verifiable at runtime."
-    ),
-    "CA": (
-        "Whether hard aggregate limits bound attacker-triggered spending — tokens, "
-        "paid calls, compute, retries, fan-out and queued work."
-    ),
-    "TD": (
-        "Whether responders could reconstruct what the agent did and which "
-        "principals it affected. Mandatory metadata; it never changes the outcome."
+        "path are bound. ES enters Lookup Table U only."
     ),
 }
 
 AGENTIC_EFFECT_CLASS_LABELS: dict[str, str] = {
-    "A0": "No class-based promotion",
-    "A1": "Agentic characteristics present",
-    "A2": "Substantial classifying interaction",
-    "AX": "Insufficient evidence to classify",
+    "A0": "None",
+    "A1": "Present",
+    "A2": "Substantial",
+    "AX": "Insufficient evidence",
+}
+
+# Lookup Table U (Table 5): Effect Class key x ES. AX uses the A0 row.
+UPLIFT_TABLE: dict[str, dict[str, int]] = {
+    "A0": {"N": 0, "M": 1, "W": 2},
+    "A1": {"N": 3, "M": 5, "W": 6},
+    "A2_not_R": {"N": 7, "M": 8, "W": 9},
+    "A2_R": {"N": 8, "M": 9, "W": 10},
 }
 
 
 @dataclass(frozen=True)
 class AIProfile:
-    """One coherent exploit-path profile containing all eight metrics."""
+    """One coherent exploit-path profile: LC, CP, AP, SR and ES."""
 
     lc: str
     cp: str
     ap: str
     sr: str
-    ex: str
-    pt: str
-    ca: str
-    td: str
+    es: str
 
     def __post_init__(self) -> None:
-        for name, value in (
-            ("LC", self.lc),
-            ("CP", self.cp),
-            ("AP", self.ap),
-            ("SR", self.sr),
-        ):
-            if value not in CLASSIFYING_AGENTIC_METRICS[name]:
+        for name in AGENTIC_METRIC_ORDER:
+            value = getattr(self, name.lower())
+            if value not in AGENTIC_METRICS[name]:
                 raise ValueError(
                     f"Illegal value {value!r} for Agentic AI metric {name!r}; "
-                    f"expected one of {sorted(CLASSIFYING_AGENTIC_METRICS[name])}"
-                )
-        for name, value in (
-            ("EX", self.ex),
-            ("PT", self.pt),
-            ("CA", self.ca),
-            ("TD", self.td),
-        ):
-            if value not in ASSURANCE_AGENTIC_METRICS[name]:
-                raise ValueError(
-                    f"Illegal value {value!r} for Agentic AI metric {name!r}; "
-                    f"expected one of {sorted(ASSURANCE_AGENTIC_METRICS[name])}"
+                    f"expected one of {sorted(AGENTIC_METRICS[name])}"
                 )
 
     @property
-    def is_absent(self) -> bool:
-        return self.lc == "N" and self.cp == "N" and self.ap == "N" and self.sr == "U"
+    def ex(self) -> str:  # legacy accessor
+        return self.es
 
     @property
     def complete(self) -> bool:
@@ -463,24 +488,45 @@ class AIProfile:
             for name in AGENTIC_METRIC_ORDER
         )
 
+    @property
+    def provisional(self) -> bool:
+        """True when any classifying metric (LC, CP, AP or SR) is X."""
+        return any(
+            getattr(self, name.lower()) == UNKNOWN_VALUE
+            for name in CLASSIFYING_AGENTIC_METRICS
+        )
+
     def agentic_effect_class(self) -> str:
         return self.effect_class()
 
     def effect_class(self) -> str:
-        if any(
-            getattr(self, name.lower()) == UNKNOWN_VALUE
-            for name in CLASSIFYING_AGENTIC_METRICS
-        ):
+        """Ordered rule ladder (condensed specification, Section 5.6).
+
+        A clause applies when its own metrics are known, even if another
+        classifying metric is X, so missing evidence never lowers the class
+        below what the known evidence supports.
+        """
+        lc, cp, ap, sr = self.lc, self.cp, self.ap, self.sr
+        if ap == "L" or (lc in ("D", "I") and cp == "C") or (lc == "D" and sr == "R"):
+            return "A2"
+        if lc in ("D", "I") or cp in ("S", "C") or ap == "C":
+            return "A1"
+        if UNKNOWN_VALUE in (lc, cp, ap):
             return "AX"
-        if self.ap == "L":
-            return "A2"
-        if self.lc in ("D", "I") and self.cp == "C":
-            return "A2"
-        if self.lc == "D" and self.sr == "R":
-            return "A2"
-        if self.is_absent:
-            return "A0"
-        return "A1"
+        return "A0"
+
+    def agentic_uplift_u(self) -> int | None:
+        """Lookup Table U (Table 5). Informative; returns None when ES is X."""
+        if self.es == UNKNOWN_VALUE:
+            return None
+        effect = self.effect_class()
+        if effect == "A2":
+            key = "A2_R" if self.sr == "R" else "A2_not_R"
+        elif effect == "A1":
+            key = "A1"
+        else:
+            key = "A0"
+        return UPLIFT_TABLE[key][self.es]
 
     def to_vector_fragment(self) -> str:
         return "/".join(
@@ -492,21 +538,34 @@ class AIProfile:
 
     def describe(self) -> dict[str, str]:
         out: dict[str, str] = {}
-        for name, values in AGENTIC_METRICS.items():
+        for name in AGENTIC_METRIC_ORDER:
             value = getattr(self, name.lower())
-            out[name] = f"{value} ({values[value][0]})"
+            out[name] = f"{value} ({AGENTIC_METRICS[name][value][0]})"
         return out
+
+
+def check_sr_at(sr: str, at: str) -> None:
+    """SR must agree with CVSS AT (condensed specification, Section 4.3).
+
+    FIRST defines AT:P to include attacks that may need to be launched
+    multiple times against a single target, so SR:P or SR:U requires AT:P.
+    Pass the effective value: MAT overrides AT when it is set.
+    """
+    if sr in ("P", "U") and at != "P":
+        raise ValueError(
+            f"SR:{sr} requires CVSS AT:P (or MAT:P when MAT is set): an exploit "
+            "that needs repeated attempts meets FIRST's Attack Requirements "
+            "Present definition"
+        )
 
 
 def validate_metric_evidence(
     profile: AIProfile, evidence: dict[str, dict[str, Any]]
 ) -> None:
-    """Validate evidence shape and executable SR/CA/TD classification facts."""
+    """Validate evidence shape and the executable SR classification facts."""
     expected_metrics = set(AGENTIC_METRIC_ORDER)
     if not isinstance(evidence, dict) or set(evidence) != expected_metrics:
-        raise ValueError(
-            "metric_evidence must contain exactly LC, CP, AP, SR, EX, PT, CA, and TD"
-        )
+        raise ValueError("metric_evidence must contain exactly LC, CP, AP, SR, and ES")
     common = {"rationale", "evidence_refs"}
     sr_fields = {
         "method",
@@ -520,42 +579,10 @@ def validate_metric_evidence(
         "lower_bound",
         "upper_bound",
     }
-    ca_fields = {
-        "ceiling_defined",
-        "coverage_complete",
-        "fail_closed",
-        "bypass_demonstrated",
-    }
-    td_fields = {
-        "retrieval_tested",
-        "ordered_actions_reconstructable",
-        "affected_principals_bounded",
-        "required_fields_complete",
-        "integrity_protected",
-        "retention_verified",
-    }
     for name in AGENTIC_METRIC_ORDER:
         entry = evidence[name]
-        if not isinstance(entry, dict):
-            raise ValueError(f"metric_evidence[{name!r}] must be an object")
-        rationale = entry.get("rationale")
-        refs = entry.get("evidence_refs")
-        if not isinstance(rationale, str) or not rationale.strip():
-            raise ValueError(f"{name} evidence rationale must be non-empty")
-        if (
-            not isinstance(refs, list)
-            or not refs
-            or any(not isinstance(ref, str) or not ref.strip() for ref in refs)
-        ):
-            raise ValueError(f"{name} evidence_refs must contain non-empty references")
-
-        allowed = common
-        if name == "SR":
-            allowed = common | sr_fields
-        elif name == "CA":
-            allowed = common | ca_fields
-        elif name == "TD":
-            allowed = common | td_fields
+        _check_common_evidence(name, entry)
+        allowed = common | sr_fields if name == "SR" else common
         extras = set(entry) - allowed
         if extras:
             raise ValueError(f"{name} evidence has unknown fields: {sorted(extras)}")
@@ -566,9 +593,7 @@ def validate_metric_evidence(
         result = classify_sr(deterministic_outcome=sr.get("deterministic_outcome"))
         required = common | {"method", "deterministic_outcome"}
     elif method == "empirical":
-        required = common | (
-            sr_fields - {"deterministic_outcome"}
-        )
+        required = common | (sr_fields - {"deterministic_outcome"})
         missing = required - set(sr)
         if missing:
             raise ValueError(f"SR empirical evidence is missing {sorted(missing)}")
@@ -607,34 +632,59 @@ def validate_metric_evidence(
     if result.value != profile.sr:
         raise ValueError("SR evidence does not support the vector value")
 
-    ca = evidence["CA"]
-    if set(ca) != common | ca_fields:
-        raise ValueError("CA evidence must provide all four containment observations")
-    if classify_ca(**{key: ca[key] for key in ca_fields}) != profile.ca:
-        raise ValueError("CA evidence does not support the vector value")
 
-    td = evidence["TD"]
-    if set(td) != common | td_fields:
-        raise ValueError("TD evidence must provide all six traceability observations")
-    if classify_td(**{key: td[key] for key in td_fields}) != profile.td:
-        raise ValueError("TD evidence does not support the vector value")
+def _check_common_evidence(name: str, entry: Any) -> None:
+    if not isinstance(entry, dict):
+        raise ValueError(f"{name} evidence must be an object")  # noqa: TRY004 (callers catch ValueError)
+    rationale = entry.get("rationale")
+    refs = entry.get("evidence_refs")
+    if not isinstance(rationale, str) or not rationale.strip():
+        raise ValueError(f"{name} evidence rationale must be non-empty")
+    if (
+        not isinstance(refs, list)
+        or not refs
+        or any(not isinstance(ref, str) or not ref.strip() for ref in refs)
+    ):
+        raise ValueError(f"{name} evidence_refs must contain non-empty references")
+
+
+def validate_untraceability(record: dict[str, Any]) -> str:
+    """Validate agent_untraceability evidence and return High, Moderate, Low or X."""
+    _check_common_evidence("agent_untraceability", record)
+    expected = {"rationale", "evidence_refs", *UNTRACEABILITY_FIELDS}
+    if set(record) != expected:
+        raise ValueError(
+            "agent_untraceability must provide rationale, evidence_refs, and all six "
+            "retrieval-exercise observations"
+        )
+    return classify_untraceability(**{key: record[key] for key in UNTRACEABILITY_FIELDS})
 
 
 def parse_aivss_vector(vector: str) -> AIProfile:
-    """Parse a separate FIRST-style AIVSS extension vector."""
+    """Parse a separate AIVSS:1.0 extension vector (LC/CP/AP/SR/ES)."""
+    if not isinstance(vector, str):
+        raise ValueError("AIVSS extension vector must be a string")
     parts = vector.strip().split("/")
     if not parts or parts[0] != AIVSS_EXTENSION_PREFIX:
         raise ValueError(
             f"AIVSS extension vector must begin with {AIVSS_EXTENSION_PREFIX!r}"
+        )
+    keys = [part.partition(":")[0] for part in parts[1:]]
+    if any(key in ("EX", "PT", "CA", "TD") for key in keys):
+        raise ValueError(
+            "This is a legacy eight-metric AIVSS vector (EX, PT, CA, TD). The "
+            "condensed specification uses LC/CP/AP/SR/ES; convert it with "
+            "convert_legacy_vector or 'aivss-calc migrate-vector'"
         )
     found: dict[str, str] = {}
     for part in parts[1:]:
         if ":" not in part:
             raise ValueError(f"Malformed AIVSS metric segment {part!r}")
         key, _, value = part.partition(":")
-        if key == "TA":
+        if key in ("EQ", "U"):
             raise ValueError(
-                "AIVSS metric 'TA' is withdrawn; use TD (Traceability Deficit)"
+                f"AIVSS vector must not carry the derived result {key!r}; report "
+                "Effect Class, U and AIVSS as separate fields"
             )
         if key not in AGENTIC_METRICS:
             raise ValueError(f"Unknown AIVSS metric {key!r}")
@@ -663,10 +713,55 @@ def parse_aivss_vector(vector: str) -> AIProfile:
     missing = [name for name in AGENTIC_METRIC_ORDER if name not in found]
     if missing:
         raise ValueError(
-            "A conformant AIVSS extension vector must specify all eight metrics; "
+            "A conformant AIVSS extension vector must specify LC, CP, AP, SR and ES; "
             f"missing: {', '.join(missing)}"
         )
     return AIProfile(**{name.lower(): found[name] for name in AGENTIC_METRIC_ORDER})
+
+
+def convert_legacy_vector(vector: str) -> dict[str, Any]:
+    """Convert a draft eight-metric vector to the condensed five-metric form.
+
+    EX becomes ES. PT and CA are not part of the condensed specification and
+    are dropped. TD maps to agent untraceability metadata.
+    """
+    parts = vector.strip().split("/")
+    if not parts or parts[0] != AIVSS_EXTENSION_PREFIX:
+        raise ValueError(
+            f"AIVSS extension vector must begin with {AIVSS_EXTENSION_PREFIX!r}"
+        )
+    found: dict[str, str] = {}
+    for part in parts[1:]:
+        key, sep, value = part.partition(":")
+        if not sep:
+            raise ValueError(f"Malformed AIVSS metric segment {part!r}")
+        if key not in LEGACY_METRICS:
+            raise ValueError(f"Unknown legacy AIVSS metric {key!r}")
+        if key in found:
+            raise ValueError(f"Duplicate AIVSS metric {key!r}")
+        if value not in LEGACY_METRICS[key]:
+            raise ValueError(f"Illegal value {value!r} for AIVSS metric {key!r}")
+        found[key] = value
+    if list(found) != list(LEGACY_METRIC_ORDER):
+        raise ValueError(
+            "A legacy vector must list LC, CP, AP, SR, EX, PT, CA and TD in order"
+        )
+    profile = AIProfile(
+        lc=found["LC"], cp=found["CP"], ap=found["AP"], sr=found["SR"], es=found["EX"]
+    )
+    return {
+        "aivss_vector": profile.to_vector(),
+        "agent_untraceability": UNTRACEABILITY_LABELS[found["TD"]],
+        "dropped": {"PT": found["PT"], "CA": found["CA"]},
+        "note": (
+            "Converted from a draft eight-metric vector: EX is now ES, TD is recorded "
+            "as agent_untraceability metadata, and PT and CA are not part of the "
+            "condensed specification."
+        ),
+    }
+
+
+_SPLIT_KEYS = set(AGENTIC_METRICS) | set(LEGACY_METRICS)
 
 
 def split_ai_vector(vector: str) -> tuple[str, AIProfile | None]:
@@ -681,7 +776,7 @@ def split_ai_vector(vector: str) -> tuple[str, AIProfile | None]:
         return cvss_vector, parse_aivss_vector(aivss_vector)
     for part in text.split("/"):
         key, _, _ = part.partition(":")
-        if key in AGENTIC_METRICS:
+        if key in _SPLIT_KEYS:
             raise ValueError(
                 f"AIVSS metrics must be in a separate {AIVSS_EXTENSION_PREFIX} "
                 "extension vector"

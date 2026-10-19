@@ -4,12 +4,24 @@
   "title": "Code interpreter executes attacker-supplied shell commands",
   "summary": "Agent reaches a code-execution path and runs attacker-controlled instructions.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N/E:P",
-  "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:N/SR:R/EX:M/PT:M/CA:W/TD:L",
+  "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:N/SR:R/ES:M",
   "publicly_exposed": true,
   "automatable": true,
   "technical_impact": "total",
   "evidence": {
     "poc": true
+  },
+  "agent_untraceability": {
+    "rationale": "Synthetic reference fact for AIVSS-ASI05-001: A retrieval exercise verifies all required correlated, integrity-protected, and retained records.",
+    "evidence_refs": [
+      "fixture://AIVSS-ASI05-001/untraceability"
+    ],
+    "retrieval_tested": true,
+    "ordered_actions_reconstructable": true,
+    "affected_principals_bounded": true,
+    "required_fields_complete": true,
+    "integrity_protected": true,
+    "retention_verified": true
   },
   "path_id": "AIVSS-ASI05-001-PATH-1",
   "agentic_applicability": {
@@ -56,39 +68,11 @@
       "lower_bound": 0.9172621864014352,
       "upper_bound": 1.0
     },
-    "EX": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI05-001: One or more vetted extensions are fixed and allowlisted, with schema-validated arguments and least-privilege credentials enforced outside model output.",
+    "ES": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI05-001: Extensions are allowlisted, but material gaps remain in argument schemas, credentials or callable operations.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI05-001/ex"
+        "fixture://AIVSS-ASI05-001/es"
       ]
-    },
-    "PT": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI05-001: Synthetic provider ref-provider and deployment model-ref-v1 are fixed under config-ref-v1 and changes are auditable, but provider-side artifact contents cannot be verified at runtime.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI05-001/pt"
-      ]
-    },
-    "CA": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI05-001: No finite hard aggregate pre-execution ceiling exists for all attacker-reachable billable resources.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI05-001/ca"
-      ],
-      "ceiling_defined": false,
-      "coverage_complete": false,
-      "fail_closed": false,
-      "bypass_demonstrated": false
-    },
-    "TD": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI05-001: A retrieval exercise verifies all required correlated, integrity-protected, and retained records.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI05-001/td"
-      ],
-      "retrieval_tested": true,
-      "ordered_actions_reconstructable": true,
-      "affected_principals_bounded": true,
-      "required_fields_complete": true,
-      "integrity_protected": true,
-      "retention_verified": true
     }
   },
   "include_decision": true,
@@ -97,7 +81,7 @@
     "assessor": "synthetic-reference-fixture",
     "assessor_kind": "imported",
     "tool": "aivss-calc",
-    "tool_version": "1.0.1",
+    "tool_version": "1.1.0",
     "assessed_at": "2026-08-27T00:00:00Z"
   }
 }

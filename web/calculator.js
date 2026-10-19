@@ -21,6 +21,8 @@
     ["automatable is required", "Choose whether exploitation is automatable."],
     ["technical_impact is required", "Choose the technical impact."],
   ];
+  const UNTRACEABILITY = ["High", "Moderate", "Low", "X"];
+  const LEGACY_TD = { H: "High", M: "Moderate", L: "Low", X: "X" };
   const DECISION_KEYS = {
     publicly_exposed: "pe",
     automatable: "au",
@@ -34,6 +36,8 @@
     cvss: {},
     supplemental: [],
     aivss: {},
+    untraceability: null,
+    legacyVector: null,
     decision: emptyDecision(),
     presetId: null,
     edited: false,
@@ -96,8 +100,12 @@
     return ["CVSS:4.0", ...parts, ...state.supplemental].join("/");
   }
 
+  function agenticOrder() {
+    return [...catalog.rubric.classifying_metrics, ...catalog.rubric.uplift_metrics];
+  }
+
   function aivssVector() {
-    const order = [...catalog.rubric.classifying_metrics, ...catalog.rubric.assurance_metrics];
+    const order = agenticOrder();
     const parts = order.map((metric) => `${metric}:${state.aivss[metric] ?? "?"}`);
     return [`AIVSS:${catalog.versions.spec}`, ...parts].join("/");
   }
@@ -119,14 +127,25 @@
       if (known.has(key)) state.cvss[key] = value;
       else state.supplemental.push(`${key}:${value}`);
     }
-    state.aivss = Object.fromEntries(parseVector(aivssText, `AIVSS:${catalog.versions.spec}`));
+    // A draft eight-metric vector is mapped to the five-metric form: EX becomes
+    // ES, TD becomes agent untraceability, PT and CA are dropped.
+    const parsed = Object.fromEntries(parseVector(aivssText, `AIVSS:${catalog.versions.spec}`));
+    const legacy = ["EX", "PT", "CA", "TD"].some((key) => key in parsed);
+    // Keep the draft vector so the engine can report the migration it implies.
+    state.legacyVector = legacy ? aivssText.trim() : null;
+    if (legacy) {
+      if (parsed.EX && !parsed.ES) parsed.ES = parsed.EX;
+      if (parsed.TD && LEGACY_TD[parsed.TD]) state.untraceability = LEGACY_TD[parsed.TD];
+    }
+    state.aivss = Object.fromEntries(
+      agenticOrder().filter((m) => parsed[m]).map((m) => [m, parsed[m]]),
+    );
   }
 
   function missingMetrics() {
     const base = Object.keys(catalog.cvss_metrics.base).filter((m) => !state.cvss[m]);
-    const aivss = [...catalog.rubric.classifying_metrics, ...catalog.rubric.assurance_metrics]
-      .filter((m) => !state.aivss[m]);
-    return { base, aivss };
+    const aivss = agenticOrder().filter((m) => !state.aivss[m]);
+    return { base, aivss, untraceability: !state.untraceability };
   }
 
   // ── Form rendering ──
@@ -198,6 +217,24 @@
     });
   }
 
+  function untraceabilityGroup() {
+    const info = catalog.decision_inputs.agent_untraceability;
+    const selected = state.untraceability;
+    const options = UNTRACEABILITY.map((value) =>
+      optionButton(value, value === "X" ? "X" : value[0], selected === value, info.values[value], () => {
+        state.untraceability = value;
+        changed();
+      }),
+    );
+    return metricGroup({
+      name: "Agent untraceability",
+      code: "UT",
+      summary: info.summary,
+      options,
+      description: selected ? info.values[selected] : "Not selected yet.",
+    });
+  }
+
   function subgroup(title, metrics, render) {
     return el(
       "div",
@@ -235,7 +272,8 @@
       subgroup("Modified subsequent system impact", modified.slice(8), cvssGroup),
     );
     $("aivss-classifying").replaceChildren(...catalog.rubric.classifying_metrics.map(aivssGroup));
-    $("aivss-assurance").replaceChildren(...catalog.rubric.assurance_metrics.map(aivssGroup));
+    $("aivss-uplift").replaceChildren(...catalog.rubric.uplift_metrics.map(aivssGroup));
+    $("untraceability").replaceChildren(untraceabilityGroup());
     renderDecisionForm();
     renderPresets();
     $("cvss-input").value = cvssVector();
@@ -321,6 +359,7 @@
     const preset = catalog.presets.find((p) => p.id === id);
     if (!preset) return;
     applyVectors(preset.cvss_vector, preset.aivss_vector);
+    state.untraceability = preset.agent_untraceability;
     const evidence = Object.keys(preset.evidence).find((k) => preset.evidence[k]) || "none";
     state.decision = {
       ...emptyDecision(),
@@ -344,6 +383,7 @@
     } else {
       params.set("cvss", cvssVector());
       params.set("aivss", aivssVector());
+      if (state.untraceability) params.set("ut", state.untraceability);
       const d = state.decision;
       if (d.enabled) {
         params.set("rt", "1");
@@ -367,12 +407,14 @@
       return true;
     }
     if (!params.get("cvss") || !params.get("aivss")) return false;
+    state.untraceability = null;
     try {
       applyVectors(params.get("cvss"), params.get("aivss"));
     } catch (err) {
       showError("vector-error", `Could not load vectors from the link: ${err.message}`);
       return false;
     }
+    if (UNTRACEABILITY.includes(params.get("ut"))) state.untraceability = params.get("ut");
     const d = emptyDecision();
     d.enabled = params.get("rt") === "1";
     for (const [key, short] of Object.entries(DECISION_KEYS)) {
@@ -426,6 +468,7 @@
     const problems = [];
     if (missing.base.length) problems.push(`CVSS Base metrics: ${missing.base.join(", ")}`);
     if (missing.aivss.length) problems.push(`Agentic AI metrics: ${missing.aivss.join(", ")}`);
+    if (missing.untraceability) problems.push("Agent untraceability (use X if no retrieval exercise was completed)");
     if (problems.length) {
       $("result").hidden = true;
       showError("result-error", `Select the remaining metrics — ${problems.join("; ")}.`);
@@ -436,6 +479,8 @@
       result = await window.AivssEngine.calculate({
         cvss_vector: cvssVector(),
         aivss_vector: aivssVector(),
+        agent_untraceability: state.untraceability,
+        migrated_from: state.legacyVector,
         decision: decisionRequest(),
       });
     } catch (err) {
@@ -462,12 +507,32 @@
     cls.className = `class-pill class-${p.agentic_effect_class}`;
     $("result-class-label").textContent = catalog.effect_classes[p.agentic_effect_class];
     $("result-class-status").textContent =
-      `Effect Class status: ${p.agentic_effect_class_status}. It never changes the severity number.`;
+      `Effect Class status: ${p.agentic_effect_class_status}. It selects the Table 6 column; ` +
+      `AIVSS is never lower than ${p.cvss_nomenclature} (${ruleText(p.rule)}).`;
+    $("result-cvss-label").textContent = p.cvss_nomenclature;
+    $("result-cvss").textContent = p.cvss_bte.toFixed(1);
+    $("result-cvss-band").textContent = p.cvss_band;
+    $("result-u").textContent = p.agentic_uplift_u ?? "—";
+    $("result-untraceability").textContent = state.untraceability ?? "—";
+    const provisional = $("result-provisional");
+    provisional.hidden = !p.provisional;
+    provisional.textContent = p.provisional
+      ? "Provisional: at least one of LC, CP, AP or SR is X (insufficient evidence). Resolve it before publishing."
+      : "";
+    const migration = $("result-migration");
+    migration.hidden = !p.migration;
+    migration.textContent = p.migration ? p.migration.note : "";
     $("result-macrovector").textContent = p.macrovector;
     $("out-cvss").textContent = p.cvss_vector;
     $("out-aivss").textContent = p.aivss_vector;
     renderDecision(result);
     $("result-json").textContent = JSON.stringify(result, null, 2);
+  }
+
+  function ruleText(rule) {
+    if (rule === "cell") return "the Table 6 cell applies";
+    if (rule === "cvss_bte_floor") return "the CVSS-BTE floor applies";
+    return "A0 or AX keep CVSS-BTE unchanged";
   }
 
   function decisionHint(message) {
@@ -488,7 +553,7 @@
     const box = $("decision-result");
     if (!state.decision.enabled) {
       box.replaceChildren(
-        el("p", { class: "muted small", text: "Enable the remediation timeline to add the Level 2 SSVC / BOD 26-04 decision." }),
+        el("p", { class: "muted small", text: "Enable the remediation timeline to add the Conformance Level 2 SSVC / BOD 26-04 decision." }),
       );
       return;
     }
@@ -505,6 +570,8 @@
     let overlay;
     if (!d.aivss_recommended_timeline) {
       overlay = `Not computed (${d.overlay_status}).`;
+    } else if (d.overlay_status === "provisional") {
+      overlay = "Provisional: the Effect Class is AX, so the A2 overlay cannot trigger.";
     } else if (d.escalated) {
       overlay = "Escalated one tier because the Effect Class is A2.";
     } else if (d.overlay_triggered) {
@@ -537,7 +604,12 @@
     ];
     const notes = [el("p", { class: "muted small", text: d.note })];
     if (d.missing_metadata_faq_applied) {
-      notes.push(el("p", { class: "muted small", text: "CISA's missing-metadata FAQ rule was applied (60-day timeline)." }));
+      notes.push(
+        el("p", {
+          class: "muted small",
+          text: "CISA's missing-metadata rule was applied: Automatable no and Technical Impact total.",
+        }),
+      );
     }
     const tableId = d.ssvc?.decision_table || d.bod_2604_decision_table;
     if (tableId) {
@@ -598,7 +670,10 @@
     hint(".result-card .score-label", results.severity);
     hint("#result-rating", results.severity_rating);
     hint(".result-facts div:nth-child(1) dt", results.effect_class);
-    hint(".result-facts div:nth-child(2) dt", results.macrovector);
+    hint(".result-facts div:nth-child(2) dt", results.cvss_bte);
+    hint(".result-facts div:nth-child(3) dt", results.uplift);
+    hint(".result-facts div:nth-child(4) dt", inputs.agent_untraceability.summary);
+    hint(".result-facts div:nth-child(5) dt", results.macrovector);
     hint("#result-class", results.effect_class);
     hint("#result-macrovector", results.macrovector);
   }
