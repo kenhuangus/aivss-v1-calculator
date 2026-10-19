@@ -28,7 +28,7 @@ MAESTRO_EXTENDED_NAME = "MAESTRO-extended finding"
 
 # Crosswalk from the withdrawn AIVSS v0.8 category list. ASI09 and ASI10 have no
 # v0.8 predecessor. "Agent Untraceability" has no ASI successor in OWASP Top 10;
-# AIVSS represents that concern through the TD (Traceability Deficit) metric.
+# AIVSS records that concern as mandatory agent_untraceability report metadata.
 V08_CATEGORY_CROSSWALK: dict[str, str | None] = {
     "Agent Goal and Instruction Manipulation": "ASI01",
     "Agentic AI Tool Misuse": "ASI02",
@@ -65,8 +65,8 @@ def normalize_asi(value: str) -> str:
         mapped = V08_CATEGORY_CROSSWALK[candidate]
         if mapped is None:
             raise ValueError(
-                f"v0.8 category {candidate!r} has no ASI equivalent. Assess Agent "
-                "Untraceability via the TD (Traceability Deficit) metric"
+                f"v0.8 category {candidate!r} has no ASI equivalent. Record it as "
+                "mandatory agent_untraceability metadata (High, Moderate, Low or X)"
             )
         return mapped
     raise ValueError(

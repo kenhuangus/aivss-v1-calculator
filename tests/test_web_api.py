@@ -30,6 +30,7 @@ def _decision_request(scenario: dict) -> dict:
         "automatable": scenario["automatable"],
         "technical_impact": scenario["technical_impact"],
         "evidence": scenario["evidence"],
+        "agent_untraceability": scenario["agent_untraceability"],
     }
 
 
@@ -91,12 +92,18 @@ def test_web_calculate_matches_dashboard_for_every_scenario():
         assert response["ok"], response
         result = response["result"]
         row = rows[scenario["risk_category"]]
-        assert result["profile"]["aivss"] == row["mode1_aivss"]
+        assert result["profile"]["aivss"] == row["aivss"]
+        assert result["profile"]["cvss_bte"] == row["cvss_bte"]
+        assert result["profile"]["agentic_uplift_u"] == row["agentic_uplift_u"]
         assert result["profile"]["agentic_effect_class"] == row["agentic_effect_class"]
         decision = result["decision"]
         assert decision["bod_2604_analogy_timeline"] == row["bod_timeline"]
         assert decision["aivss_recommended_timeline"] == row["aivss_recommended_timeline"]
         assert decision["escalated"] == row["escalated"]
+        assert (
+            decision["decision_points"]["agent_untraceability"]
+            == row["agent_untraceability"]
+        )
 
 
 def test_web_calculate_without_decision():
@@ -111,7 +118,11 @@ def test_web_calculate_without_decision():
     )
     assert response["ok"]
     assert set(response["result"]) == {"profile"}
-    assert response["result"]["profile"]["severity_rating"] == "High"
+    profile = response["result"]["profile"]
+    assert profile["cvss_bte"] == 7.8
+    assert profile["cvss_band"] == "High"
+    assert profile["aivss"] == 9.5
+    assert profile["severity_rating"] == "Critical"
 
 
 def test_web_incomplete_decision_keeps_severity():
@@ -125,7 +136,8 @@ def test_web_incomplete_decision_keeps_severity():
         }
     )
     assert response["ok"]
-    assert response["result"]["profile"]["aivss"] == 9.2
+    assert response["result"]["profile"]["cvss_bte"] == 9.2
+    assert response["result"]["profile"]["aivss"] == 10.0
     assert "decision" not in response["result"]
     assert response["result"]["decision_error"] == (
         "publicly_exposed must be true or false"
@@ -176,7 +188,7 @@ def test_web_kev_listed_cve_uses_vulnrichment_values():
                 "cvss_vector": SCENARIOS[0]["cvss_vector"],
                 "aivss_vector": "AIVSS:1.0/LC:D",
             },
-            "must specify all eight metrics",
+            "must specify LC, CP, AP, SR and ES",
         ),
     ],
 )
@@ -189,9 +201,12 @@ def test_web_request_errors_are_reported(request_body, message):
 def test_catalog_covers_form_and_presets():
     catalog = calculator_catalog()
     assert _call({"op": "catalog"})["result"] == json.loads(json.dumps(catalog))
-    assert list(catalog["metric_names"]) == [
-        "LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD",
-    ]
+    assert list(catalog["metric_names"]) == ["LC", "CP", "AP", "SR", "ES"]
+    assert catalog["rubric"]["classifying_metrics"] == ["LC", "CP", "AP", "SR"]
+    assert catalog["rubric"]["uplift_metrics"] == ["ES"]
+    assert set(catalog["decision_inputs"]["agent_untraceability"]["values"]) == {
+        "High", "Moderate", "Low", "X",
+    }
     assert set(catalog["metric_names"]) == set(catalog["rubric"]["metrics"])
     assert list(catalog["cvss_metrics"]["base"]) == [
         "AV", "AC", "AT", "PR", "UI", "VC", "VI", "VA", "SC", "SI", "SA",
@@ -200,6 +215,43 @@ def test_catalog_covers_form_and_presets():
     assert [p["id"] for p in catalog["presets"]] == [
         s["risk_category"] for s in SCENARIOS
     ]
+
+
+def test_web_converts_legacy_vector_and_reports_migration():
+    scenario = SCENARIOS[0]
+    legacy = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H"
+    response = _call(
+        {
+            "op": "calculate",
+            "cvss_vector": scenario["cvss_vector"],
+            "aivss_vector": legacy,
+            "decision": {
+                "publicly_exposed": True,
+                "publicly_exposed_source": "asset inventory",
+                "decision_data_observed_at": OBSERVED_AT,
+                "automatable": True,
+                "technical_impact": "total",
+            },
+        }
+    )
+    assert response["ok"], response
+    profile = response["result"]["profile"]
+    assert profile["aivss_vector"] == "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
+    assert profile["migration"]["dropped"] == {"PT": "H", "CA": "M"}
+    decision = response["result"]["decision"]
+    assert decision["decision_points"]["agent_untraceability"] == "High"
+
+
+def test_web_rejects_sr_probabilistic_without_at_p():
+    response = _call(
+        {
+            "op": "calculate",
+            "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N",
+            "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:N/SR:P/ES:M",
+        }
+    )
+    assert response["ok"] is False
+    assert "AT:P" in response["error"]
 
 
 def test_package_zip_contains_importable_sources():

@@ -13,11 +13,15 @@ from .ai_metrics import (
     AGENTIC_EFFECT_CLASS_LABELS,
     AIProfile,
     EFFECT_CLASS_STATUS,
+    UNTRACEABILITY_DEFINITIONS,
+    check_sr_at,
     parse_aivss_vector,
     split_ai_vector,
     validate_metric_evidence,
+    validate_untraceability,
 )
 from .cvss_score import score_cvss_bte
+from .lookup import AIVSS_BASIS, aivss_lookup, cvss_nomenclature
 from .decision import ExploitationEvidence, decide
 from .exploit_maturity import apply_exploit_maturity, resolve_exploit_maturity
 from .macrovector import macrovector, parse_cvss_vector
@@ -31,6 +35,10 @@ from .versions import (
 )
 
 VALID_ASSESSOR_KINDS = frozenset({"human", "scanner", "llm_assisted", "imported"})
+
+UNKNOWN_EXPOSURE_SOURCE = (
+    "Unknown exposure treated as internal (CISA BOD 26-04 implementation guidance)"
+)
 
 
 @dataclass
@@ -97,6 +105,7 @@ class Assessment:
     ai_profile: AIProfile | None = None
     agentic_applicability: dict[str, Any] = field(default_factory=dict)
     metric_evidence: dict[str, dict[str, Any]] = field(default_factory=dict)
+    agent_untraceability: dict[str, Any] | None = None
     path_id: str | None = None
     evidence: ExploitationEvidence = field(default_factory=ExploitationEvidence)
     org_context: OrgContext | None = None
@@ -129,6 +138,11 @@ def assessment_from_payload(payload: dict[str, Any]) -> Assessment:
         asi_category=payload["risk_category"],
         agentic_applicability=dict(payload["agentic_applicability"]),
         metric_evidence=dict(payload.get("metric_evidence") or {}),
+        agent_untraceability=(
+            dict(payload["agent_untraceability"])
+            if payload.get("agent_untraceability") is not None
+            else None
+        ),
         evidence=ExploitationEvidence(**dict(payload.get("evidence", {}))),
         org_context=OrgContext(**org) if org else None,
         provenance=Provenance(**dict(payload.get("provenance", {}))),
@@ -155,8 +169,10 @@ def assessment_from_payload(payload: dict[str, Any]) -> Assessment:
 def assess(a: Assessment) -> dict[str, Any]:
     """Produce a schema-conforming AIVSS 1.0 report for one exploit path.
 
-    Level 1 conformance requires a complete Agentic AI Profile and resolves
-    Exploit Maturity (E) from the evidence ladder before CVSS-BTE scoring.
+    Conformance Level 1 requires the Agentic AI Profile (LC, CP, AP, SR, ES)
+    and agent untraceability metadata, and resolves Exploit Maturity (E) from
+    the evidence ladder before CVSS-BTE scoring. AIVSS is read from Lookup
+    Table AIVSS (Table 6) and is never lower than CVSS-BTE.
     """
     if not isinstance(a.finding_id, str) or not a.finding_id.strip():
         raise ValueError("finding_id is required")
@@ -233,10 +249,16 @@ def assess(a: Assessment) -> dict[str, Any]:
     )
     if profile is None:
         raise ValueError(
-            "Level 1 conformance requires a complete Agentic AI Profile "
-            "(aivss_vector or ai_profile with all eight metrics)"
+            "Conformance Level 1 requires an Agentic AI Profile "
+            "(aivss_vector or ai_profile with LC, CP, AP, SR and ES)"
         )
     validate_metric_evidence(profile, a.metric_evidence)
+    if a.agent_untraceability is None:
+        raise ValueError(
+            "agent_untraceability is mandatory report metadata; record the "
+            "retrieval-exercise observations (use false/null when not tested)"
+        )
+    untraceability = validate_untraceability(a.agent_untraceability)
     if a.provenance.assessed_at is None:
         raise ValueError(
             "provenance.assessed_at is required as an RFC 3339 evidence timestamp"
@@ -250,10 +272,13 @@ def assess(a: Assessment) -> dict[str, Any]:
     metrics = parse_cvss_vector(resolved_vector)
     mv = macrovector(metrics)
     cvss_bte = score_cvss_bte(resolved_vector)
+    # SR refines AT and must agree with it (Section 4.3).
+    check_sr_at(profile.sr, metrics["AT"])
 
-    # (2)–(3) Score profile and effect class independently of CVSS.
+    # (2)-(4) Effect Class by the ordered ladder, then the lookup tables.
     ai_class = profile.effect_class()
-    td = profile.td
+    uplift = profile.agentic_uplift_u()
+    lookup = aivss_lookup(cvss_bte, ai_class)
 
     risk_category = normalize_risk_category(a.asi_category, a.taxonomy_metadata)
 
@@ -293,20 +318,30 @@ def assess(a: Assessment) -> dict[str, Any]:
                 for name in AGENTIC_METRIC_ORDER
             },
             "complete": profile.complete,
+            "provisional": profile.provisional,
             "agentic_effect_class": ai_class,
             "agentic_effect_class_label": AGENTIC_EFFECT_CLASS_LABELS[ai_class],
             "agentic_effect_class_status": EFFECT_CLASS_STATUS,
+            "agentic_uplift_u": uplift,
+        },
+        "agent_untraceability": {
+            "value": untraceability,
+            "definition": UNTRACEABILITY_DEFINITIONS[untraceability],
+            "evidence": dict(a.agent_untraceability),
         },
         "scores": {
-            "mode1_interpretation": {
-                "aivss": cvss_bte,
-                "cvss_bte": cvss_bte,
-                "status": "normative",
-                "basis": (
-                    "AIVSS = CVSS-BTE. Agentic AI metrics are parallel metadata "
-                    "and do not modify the severity number."
-                ),
-            },
+            "cvss_bte": cvss_bte,
+            "cvss_nomenclature": cvss_nomenclature(metrics),
+            "cvss_band": lookup["cvss_band"],
+            "agentic_effect_class": ai_class,
+            "provisional": profile.provisional,
+            "agentic_uplift_u": uplift,
+            "aivss": lookup["aivss"],
+            "aivss_band": lookup["aivss_band"],
+            "table_cell": lookup["table_cell"],
+            "rule": lookup["rule"],
+            "status": "normative",
+            "basis": AIVSS_BASIS,
         },
         "provenance": a.provenance.to_dict(),
     }
@@ -316,15 +351,14 @@ def assess(a: Assessment) -> dict[str, Any]:
         report["summary"] = a.summary
 
     if a.include_decision:
-        # CISA BOD 26-04 FAQ: unknown Publicly Exposed defaults to Yes.
+        # CISA makes a best-effort exposure determination and otherwise treats
+        # the asset as internal. Treating unknown exposure as exposed is an
+        # organizational policy and must be supplied explicitly.
         publicly_exposed = a.publicly_exposed
         publicly_exposed_source = a.publicly_exposed_source
         if publicly_exposed is None:
-            publicly_exposed = True
-            publicly_exposed_source = (
-                publicly_exposed_source
-                or "CISA BOD 26-04 FAQ default: unknown Publicly Exposed treated as Yes"
-            )
+            publicly_exposed = False
+            publicly_exposed_source = publicly_exposed_source or UNKNOWN_EXPOSURE_SOURCE
         if a.decision_data_observed_at is None:
             raise ValueError(
                 "decision_data_observed_at is required when include_decision is true"
@@ -335,7 +369,7 @@ def assess(a: Assessment) -> dict[str, Any]:
             publicly_exposed_source=publicly_exposed_source,
             decision_data_observed_at=a.decision_data_observed_at,
             agentic_effect_class=ai_class,
-            td=td,
+            agent_untraceability=untraceability,
             automatable=a.automatable,
             technical_impact=a.technical_impact,
             cve_id=a.cve_id,

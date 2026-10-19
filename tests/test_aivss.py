@@ -32,10 +32,17 @@ from aivss_calc import (
 from aivss_calc.ai_metrics import (
     AGENTIC_METRIC_ORDER,
     AGENTIC_METRICS,
-    ADJUSTMENT_AGENTIC_METRICS,
     CLASSIFYING_AGENTIC_METRICS,
+    UNTRACEABILITY_FIELDS,
+    UPLIFT_AGENTIC_METRICS,
+    UPLIFT_TABLE,
+    check_sr_at,
     classify_sr,
+    classify_untraceability,
+    convert_legacy_vector,
+    validate_untraceability,
 )
+from aivss_calc.lookup import TABLE_6, aivss_lookup, cvss_nomenclature
 from aivss_calc.decision import TIMELINE_URGENCY, advance_timeline, decide, escalate
 from aivss_calc.legacy import compute_severity, factor_mean, score_legacy
 from aivss_calc.cvss_score import score_cvss_bte
@@ -49,7 +56,9 @@ SCHEMA = REPO / "schemas" / "aivss-report-v1.0.json"
 # CVSS-BTE 7.8 (interpolated), MacroVector ceiling 8.0.
 EXAMPLE_VECTOR = "CVSS:4.0/AV:N/AC:H/AT:N/PR:N/UI:N/VC:H/VI:L/VA:L/SC:H/SI:N/SA:N/E:P"
 EXAMPLE_CVSS_BTE = 7.8
-EXAMPLE_AI = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H"
+EXAMPLE_AI = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
+# Example is A2 (AP:L) in the High band, so Table 6 gives 9.5.
+EXAMPLE_AIVSS = 9.5
 EXAMPLE_FULL = f"{EXAMPLE_VECTOR} {EXAMPLE_AI}"
 DECISION_CONTEXT = {
     "publicly_exposed_source": "test fixture",
@@ -96,52 +105,31 @@ def metric_evidence(vector: str) -> dict[str, dict]:
                 "upper_bound": classified.upper_bound,
             }
         )
-    ca = {
-        "W": (False, False, False, False),
-        "M": (True, False, True, False),
-        "N": (True, True, True, False),
-        "X": (None, None, None, None),
-    }[assessed.ca]
-    result["CA"].update(
-        dict(
-            zip(
-                (
-                    "ceiling_defined",
-                    "coverage_complete",
-                    "fail_closed",
-                    "bypass_demonstrated",
-                ),
-                ca,
-                strict=True,
-            )
-        )
-    )
-    td = {
-        "H": (True, False, False, False, False, False),
-        "M": (True, True, True, False, False, False),
-        "L": (True, True, True, True, True, True),
-        "X": (False, None, None, None, None, None),
-    }[assessed.td]
-    result["TD"].update(
-        dict(
-            zip(
-                (
-                    "retrieval_tested",
-                    "ordered_actions_reconstructable",
-                    "affected_principals_bounded",
-                    "required_fields_complete",
-                    "integrity_protected",
-                    "retention_verified",
-                ),
-                td,
-                strict=True,
-            )
-        )
-    )
     return result
 
 
 METRIC_EVIDENCE = metric_evidence(EXAMPLE_AI)
+
+UNTRACEABILITY_OBSERVATIONS = {
+    "High": (True, False, False, False, False, False),
+    "Moderate": (True, True, True, False, False, False),
+    "Low": (True, True, True, True, True, True),
+    "X": (False, None, None, None, None, None),
+}
+
+
+def untraceability(level: str = "High") -> dict:
+    record = {
+        "rationale": f"Test retrieval exercise recording {level} untraceability",
+        "evidence_refs": ["test://untraceability"],
+    }
+    record.update(
+        dict(zip(UNTRACEABILITY_FIELDS, UNTRACEABILITY_OBSERVATIONS[level], strict=True))
+    )
+    return record
+
+
+UNTRACEABILITY_HIGH = untraceability("High")
 
 
 def profile(**overrides: str) -> AIProfile:
@@ -150,10 +138,7 @@ def profile(**overrides: str) -> AIProfile:
         "cp": "N",
         "ap": "N",
         "sr": "U",
-        "ex": "N",
-        "pt": "L",
-        "ca": "N",
-        "td": "L",
+        "es": "N",
     }
     values.update(overrides)
     return AIProfile(**values)
@@ -194,17 +179,27 @@ class TestAIEffectClass:
     def test_a2_conditions(self, kwargs):
         assert profile(**kwargs).effect_class() == "A2"
 
-    def test_assurance_metrics_do_not_promote_effect_class(self):
-        assert profile(lc="I", ex="W").effect_class() == "A1"
-        assert profile(pt="H", ex="M").effect_class() == "A0"
-        assert profile(sr="R", ca="W").effect_class() == "A1"
+    def test_es_does_not_change_effect_class(self):
+        assert profile(lc="I", es="W").effect_class() == "A1"
+        assert profile(es="W").effect_class() == "A0"
+        assert profile(sr="R", es="W").effect_class() == "A0"
 
     @pytest.mark.parametrize(
         "kwargs",
-        [{"lc": "I"}, {"cp": "S"}, {"ap": "C"}, {"sr": "R"}, {"lc": "M"}],
+        [{"lc": "I"}, {"lc": "D"}, {"cp": "S"}, {"cp": "C"}, {"ap": "C"}],
     )
     def test_a1_conditions(self, kwargs):
         assert profile(**kwargs).effect_class() == "A1"
+
+    @pytest.mark.parametrize("kwargs", [{"lc": "M"}, {"sr": "R"}, {"lc": "M", "sr": "R"}])
+    def test_lc_m_and_sr_alone_do_not_trigger_a1(self, kwargs):
+        assert profile(**kwargs).effect_class() == "A0"
+
+    def test_ladder_is_first_match(self):
+        """A2 is checked before A1, and both before AX."""
+        assert profile(lc="D", cp="C", ap="C").effect_class() == "A2"
+        assert profile(lc="I", ap="X").effect_class() == "A1"
+        assert profile(ap="L", lc="X").effect_class() == "A2"
 
     def test_a0_only_when_all_benign(self):
         assert profile().effect_class() == "A0"
@@ -242,6 +237,99 @@ class TestAIEffectClass:
     def test_unknown_classifying_metric_yields_ax(self):
         assert profile(lc="X").effect_class() == "AX"
         assert profile(lc="X").complete is False
+        assert profile(lc="X").provisional is True
+
+    def test_unknown_sr_is_provisional_but_not_ax(self):
+        """SR enters only the A2 clause, so SR:X leaves the class but marks it provisional."""
+        assert profile(sr="X").effect_class() == "A0"
+        assert profile(sr="X").provisional is True
+        assert profile(es="X").provisional is False
+        assert profile(es="X").complete is False
+
+
+class TestLookupTables:
+    def test_table_6_cells(self):
+        assert TABLE_6 == {
+            "None": {"A1": 0.0, "A2": 0.0},
+            "Low": {"A1": 5.5, "A2": 7.1},
+            "Medium": {"A1": 7.5, "A2": 8.9},
+            "High": {"A1": 8.7, "A2": 9.5},
+            "Critical": {"A1": 9.7, "A2": 10.0},
+        }
+
+    @pytest.mark.parametrize("cls", ["A0", "AX"])
+    def test_a0_and_ax_keep_cvss_bte(self, cls):
+        result = aivss_lookup(7.8, cls)
+        assert result["aivss"] == 7.8
+        assert result["table_cell"] is None
+        assert result["rule"] == "cvss_bte_unchanged"
+
+    def test_cell_applies_when_higher(self):
+        result = aivss_lookup(5.7, "A1")
+        assert result["aivss"] == 7.5
+        assert result["aivss_band"] == "High"
+        assert result["cvss_band"] == "Medium"
+        assert result["rule"] == "cell"
+
+    def test_cvss_bte_floor(self):
+        """AIVSS is never lower than CVSS-BTE (A1 Critical cell 9.7 < 9.8)."""
+        result = aivss_lookup(9.8, "A1")
+        assert result["aivss"] == 9.8
+        assert result["rule"] == "cvss_bte_floor"
+
+    def test_never_below_cvss_bte_exhaustive(self):
+        for tenth in range(101):
+            cvss = tenth / 10
+            for cls in ("A0", "A1", "A2", "AX"):
+                value = aivss_lookup(cvss, cls)["aivss"]
+                assert cvss <= value <= 10.0
+
+    def test_uplift_table_5(self):
+        assert UPLIFT_TABLE == {
+            "A0": {"N": 0, "M": 1, "W": 2},
+            "A1": {"N": 3, "M": 5, "W": 6},
+            "A2_not_R": {"N": 7, "M": 8, "W": 9},
+            "A2_R": {"N": 8, "M": 9, "W": 10},
+        }
+        assert profile(ap="L", sr="R", es="W").agentic_uplift_u() == 10
+        assert profile(ap="L", sr="P", es="W").agentic_uplift_u() == 9
+        assert profile(lc="X", es="M").agentic_uplift_u() == 1
+        assert profile(es="X").agentic_uplift_u() is None
+
+    def test_cvss_nomenclature(self):
+        assert cvss_nomenclature(parse_cvss_vector(EXAMPLE_VECTOR)) == "CVSS-BT"
+        base = "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N"
+        assert cvss_nomenclature(parse_cvss_vector(base)) == "CVSS-B"
+        assert cvss_nomenclature(parse_cvss_vector(base + "/CR:H")) == "CVSS-BE"
+        assert cvss_nomenclature(parse_cvss_vector(base + "/E:A/CR:H")) == "CVSS-BTE"
+
+
+class TestSrAttackRequirements:
+    @pytest.mark.parametrize("sr", ["P", "U"])
+    def test_probabilistic_or_unreliable_requires_at_p(self, sr):
+        with pytest.raises(ValueError, match="AT:P"):
+            check_sr_at(sr, "N")
+        check_sr_at(sr, "P")
+
+    @pytest.mark.parametrize("sr", ["R", "X"])
+    def test_reliable_or_unknown_allows_either(self, sr):
+        check_sr_at(sr, "N")
+        check_sr_at(sr, "P")
+
+
+class TestUntraceability:
+    @pytest.mark.parametrize("level", ["High", "Moderate", "Low", "X"])
+    def test_classification(self, level):
+        record = untraceability(level)
+        assert validate_untraceability(record) == level
+        observations = {key: record[key] for key in UNTRACEABILITY_FIELDS}
+        assert classify_untraceability(**observations) == level
+
+    def test_record_requires_all_observations(self):
+        record = untraceability("Low")
+        del record["retention_verified"]
+        with pytest.raises(ValueError, match="six"):
+            validate_untraceability(record)
 
 
 class TestSRClassification:
@@ -279,39 +367,26 @@ class TestSRClassification:
 
 
 class TestMetricPartitions:
-    """Eight metrics with closed value sets — every code must be assignable."""
+    """Five metrics with closed value sets — every code must be assignable."""
 
-    EXPECTED_COUNTS = {
-        "LC": 5,
-        "CP": 4,
-        "AP": 4,
-        "SR": 4,
-        "EX": 4,
-        "PT": 4,
-        "CA": 4,
-        "TD": 4,
-    }
+    EXPECTED_COUNTS = {"LC": 5, "CP": 4, "AP": 4, "SR": 4, "ES": 4}
 
-    def test_eight_metrics_in_fixed_order(self):
-        assert AGENTIC_METRIC_ORDER == ("LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD")
+    def test_five_metrics_in_fixed_order(self):
+        assert AGENTIC_METRIC_ORDER == ("LC", "CP", "AP", "SR", "ES")
 
-    def test_classifying_and_assurance_partition_the_eight(self):
-        assert set(CLASSIFYING_AGENTIC_METRICS) | set(
-            ADJUSTMENT_AGENTIC_METRICS
-        ) == set(AGENTIC_METRIC_ORDER)
-        assert set(CLASSIFYING_AGENTIC_METRICS).isdisjoint(ADJUSTMENT_AGENTIC_METRICS)
+    def test_classifying_and_uplift_partition_the_five(self):
+        assert set(CLASSIFYING_AGENTIC_METRICS) | set(UPLIFT_AGENTIC_METRICS) == set(
+            AGENTIC_METRIC_ORDER
+        )
+        assert set(CLASSIFYING_AGENTIC_METRICS).isdisjoint(UPLIFT_AGENTIC_METRICS)
 
     @pytest.mark.parametrize("name,count", list(EXPECTED_COUNTS.items()))
     def test_value_set_size(self, name, count):
         assert len(AGENTIC_METRICS[name]) == count
 
-    def test_every_assurance_value_parses_in_profile(self):
-        for ex in AGENTIC_METRICS["EX"]:
-            for pt in AGENTIC_METRICS["PT"]:
-                for ca in AGENTIC_METRICS["CA"]:
-                    for td in AGENTIC_METRICS["TD"]:
-                        ai = profile(ex=ex, pt=pt, ca=ca, td=td)
-                        assert ai.complete == ("X" not in (ex, pt, ca, td))
+    def test_every_es_value_parses_in_profile(self):
+        for es in AGENTIC_METRICS["ES"]:
+            assert profile(es=es).complete == (es != "X")
 
 
 class TestVectorParsing:
@@ -327,8 +402,23 @@ class TestVectorParsing:
         assert parsed is None
 
     def test_partial_ai_group_rejected(self):
-        with pytest.raises(ValueError, match="all eight"):
+        with pytest.raises(ValueError, match="missing"):
             parse_aivss_vector("AIVSS:1.0/LC:D/CP:C")
+
+    def test_legacy_vector_rejected_with_migration_hint(self):
+        with pytest.raises(ValueError, match="migrate-vector"):
+            parse_aivss_vector("AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H")
+
+    def test_legacy_vector_conversion(self):
+        result = convert_legacy_vector("AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H")
+        assert result["aivss_vector"] == EXAMPLE_AI
+        assert result["agent_untraceability"] == "High"
+        assert result["dropped"] == {"PT": "H", "CA": "M"}
+
+    @pytest.mark.parametrize("key", ["EQ", "U"])
+    def test_derived_results_are_not_vector_metrics(self, key):
+        with pytest.raises(ValueError, match="derived result"):
+            parse_aivss_vector(f"{EXAMPLE_AI}/{key}:2")
 
     def test_appended_ai_metrics_are_rejected(self):
         with pytest.raises(ValueError, match="separate"):
@@ -336,7 +426,7 @@ class TestVectorParsing:
 
     def test_duplicate_ai_metric_rejected(self):
         with pytest.raises(ValueError, match="Duplicate AIVSS metric"):
-            parse_aivss_vector("AIVSS:1.0/LC:D/LC:I/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H")
+            parse_aivss_vector("AIVSS:1.0/LC:D/LC:I/CP:C/AP:L/SR:R/ES:W")
 
     def test_wrong_extension_version_rejected(self):
         with pytest.raises(ValueError, match="must begin"):
@@ -482,15 +572,15 @@ class TestBOD2604:
         assert escalate("FSU", "A2") == "60D"
         assert escalate("14D", "A2") == "3D"
 
-    def test_td_high_does_not_escalate_timeline_v1_overlay(self):
-        """v1.0 SSVC overlay: only A2 escalates; TD/TA is metadata only."""
+    def test_untraceability_does_not_escalate_timeline(self):
+        """Only A2 escalates; agent untraceability is metadata only."""
         assert advance_timeline("60D", 1) == "14D"
         result = decide(
             evidence=ExploitationEvidence(),
             publicly_exposed=False,
             **DECISION_CONTEXT,
             agentic_effect_class="A0",
-            td="H",
+            agent_untraceability="High",
             automatable=False,
             technical_impact="partial",
         )
@@ -505,7 +595,7 @@ class TestBOD2604:
             publicly_exposed=False,
             **DECISION_CONTEXT,
             agentic_effect_class="A2",
-            td="H",
+            agent_untraceability="High",
             automatable=False,
             technical_impact="partial",
         )
@@ -524,12 +614,36 @@ class TestBOD2604:
             vulnrichment_automatable=True,
             vulnrichment_technical_impact="total",
             agentic_effect_class="A2",
-            td="H",
+            agent_untraceability="High",
         )
         assert result["bod_2604_timeline"] == "3DF"
         assert result["aivss_recommended_timeline"] == "3DF"
         assert result["forensic_triage_required"] is True
         assert result["aivss_recommended_forensic_triage_indicated"] is True
+
+    def test_ax_overlay_is_provisional_and_never_escalates(self):
+        result = decide(
+            evidence=ExploitationEvidence(),
+            publicly_exposed=True,
+            **DECISION_CONTEXT,
+            agentic_effect_class="AX",
+            automatable=True,
+            technical_impact="partial",
+        )
+        assert result["overlay_status"] == "provisional"
+        assert result["overlay_triggered"] is False
+        assert result["aivss_recommended_timeline"] == result["bod_2604_analogy_timeline"]
+
+    def test_invalid_untraceability_rejected(self):
+        with pytest.raises(ValueError, match="agent_untraceability"):
+            decide(
+                evidence=ExploitationEvidence(),
+                publicly_exposed=True,
+                **DECISION_CONTEXT,
+                agent_untraceability="H",
+                automatable=True,
+                technical_impact="partial",
+            )
 
 
 class TestEvidenceLadder:
@@ -599,14 +713,15 @@ class TestEvidenceLadder:
                 agentic_effect_class="A0",
             )
 
-    def test_cve_missing_metadata_faq_yields_60d(self):
-        """Non-KEV CVE with both Automatable and TI missing → 60D per CISA FAQ."""
+    def test_cve_missing_metadata_uses_automatable_no_and_total_impact(self):
+        """Non-KEV CVE with no published values: Automatable no, Technical Impact
+        total, so an exposed asset resolves to 14D."""
         result = decide(
             evidence=ExploitationEvidence(cisa_kev=False),
             publicly_exposed=True,
             **DECISION_CONTEXT,
             agentic_effect_class="A0",
-            td="M",
+            agent_untraceability="Moderate",
             cve_id="CVE-2024-0001",
         )
         assert result["missing_metadata_faq_applied"] is True
@@ -616,21 +731,34 @@ class TestEvidenceLadder:
         assert result["decision_points"]["technical_impact_source"] == (
             "CISA BOD 26-04 FAQ (missing metadata)"
         )
-        assert result["bod_2604_guidance_timeline"] == "60D"
+        assert result["decision_points"]["automatable"] is False
+        assert result["decision_points"]["technical_impact"] == "total"
+        assert result["bod_2604_guidance_timeline"] == "14D"
         assert result["compliance_applicable"] is False
         assert result["decision_basis"] == "informative_bod_26_04_cve_guidance"
 
-    def test_cve_missing_metadata_faq_60d_with_fceb_scope(self):
+    def test_cve_missing_metadata_not_exposed_is_fsu(self):
+        result = decide(
+            evidence=ExploitationEvidence(cisa_kev=False),
+            publicly_exposed=False,
+            **DECISION_CONTEXT,
+            agentic_effect_class="A0",
+            cve_id="CVE-2024-0001",
+        )
+        assert result["bod_2604_guidance_timeline"] == "FSU"
+        assert result["missing_metadata_faq_applied"] is True
+
+    def test_cve_missing_metadata_with_fceb_scope(self):
         result = decide(
             evidence=ExploitationEvidence(cisa_kev=False),
             publicly_exposed=True,
             **DECISION_CONTEXT,
             agentic_effect_class="A0",
-            td="M",
+            agent_untraceability="Moderate",
             cve_id="CVE-2024-0001",
             fceb_bod_2604_scope=True,
         )
-        assert result["bod_2604_timeline"] == "60D"
+        assert result["bod_2604_timeline"] == "14D"
         assert result["missing_metadata_faq_applied"] is True
 
     def test_kev_requires_published_metadata_instead_of_defaults(self):
@@ -662,7 +790,7 @@ class TestEvidenceLadder:
             publicly_exposed=False,
             **DECISION_CONTEXT,
             agentic_effect_class="A2",
-            td="M",
+            agent_untraceability="Moderate",
             vulnrichment_automatable=False,
             vulnrichment_technical_impact="partial",
         )
@@ -681,7 +809,7 @@ class TestTaxonomy:
         assert normalize_asi("asi06") == "ASI06"
 
     def test_untraceability_has_no_asi_successor(self):
-        with pytest.raises(ValueError, match="TD"):
+        with pytest.raises(ValueError, match="agent_untraceability"):
             normalize_asi("Agent Untraceability")
 
     def test_every_crosswalk_target_is_valid(self):
@@ -839,6 +967,7 @@ class TestEndToEnd:
             asi_category="ASI06",
             agentic_applicability=dict(APPLICABILITY),
             metric_evidence=dict(METRIC_EVIDENCE),
+            agent_untraceability=dict(UNTRACEABILITY_HIGH),
             evidence=ExploitationEvidence(poc=True),
             publicly_exposed=True,
             publicly_exposed_source="test fixture",
@@ -861,13 +990,22 @@ class TestEndToEnd:
         defaults.update(overrides)
         return assess(Assessment(**defaults))
 
-    def test_normative_severity_equals_cvss_bte(self):
+    def test_aivss_is_read_from_table_6(self):
         report = self._assessment()
         assert report["cvss"]["cvss_bte"] == EXAMPLE_CVSS_BTE
-        mode1 = report["scores"]["mode1_interpretation"]
-        assert mode1["aivss"] == EXAMPLE_CVSS_BTE
-        assert mode1["cvss_bte"] == EXAMPLE_CVSS_BTE
-        assert mode1["status"] == "normative"
+        scores = report["scores"]
+        assert scores["cvss_bte"] == EXAMPLE_CVSS_BTE
+        assert scores["cvss_nomenclature"] == "CVSS-BT"
+        assert scores["cvss_band"] == "High"
+        assert scores["agentic_effect_class"] == "A2"
+        assert scores["table_cell"] == EXAMPLE_AIVSS
+        assert scores["aivss"] == EXAMPLE_AIVSS
+        assert scores["aivss_band"] == "Critical"
+        assert scores["rule"] == "cell"
+        assert scores["agentic_uplift_u"] == 10
+        assert scores["provisional"] is False
+        assert scores["status"] == "normative"
+        assert report["agent_untraceability"]["value"] == "High"
 
     def test_vectors_are_separate(self):
         report = self._assessment()
@@ -876,13 +1014,31 @@ class TestEndToEnd:
         assert "vector" not in report
 
     def test_a0_is_value_based_not_presence_based(self):
-        benign = "AIVSS:1.0/LC:N/CP:N/AP:N/SR:U/EX:W/PT:L/CA:N/TD:H"
+        benign = "AIVSS:1.0/LC:N/CP:N/AP:N/SR:R/ES:W"
         report = self._assessment(aivss_vector=benign)
         assert report["agentic_ai_profile"]["agentic_effect_class"] == "A0"
-        assert report["scores"]["mode1_interpretation"]["aivss"] == EXAMPLE_CVSS_BTE
+        assert report["scores"]["aivss"] == EXAMPLE_CVSS_BTE
+        assert report["scores"]["rule"] == "cvss_bte_unchanged"
+        assert report["scores"]["agentic_uplift_u"] == 2
+
+    def test_sr_probabilistic_with_at_n_is_rejected(self):
+        with pytest.raises(ValueError, match="AT:P"):
+            self._assessment(aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/SR:P/ES:W")
+
+    def test_sr_probabilistic_with_at_p_is_accepted(self):
+        report = self._assessment(
+            cvss_vector=EXAMPLE_VECTOR.replace("/AT:N/", "/AT:P/"),
+            aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/SR:P/ES:W",
+        )
+        assert report["agentic_ai_profile"]["agentic_effect_class"] == "A2"
+        assert report["scores"]["agentic_uplift_u"] == 9
+
+    def test_missing_untraceability_is_rejected(self):
+        with pytest.raises(ValueError, match="agent_untraceability"):
+            self._assessment(agent_untraceability=None)
 
     def test_assess_without_profile_rejected(self):
-        with pytest.raises(ValueError, match="Level 1 conformance requires"):
+        with pytest.raises(ValueError, match="Conformance Level 1 requires"):
             assess(
                 Assessment(
                     finding_id="x",
@@ -905,6 +1061,7 @@ class TestEndToEnd:
                 asi_category="ASI06",
                 agentic_applicability=dict(APPLICABILITY),
                 metric_evidence=dict(METRIC_EVIDENCE),
+                agent_untraceability=dict(UNTRACEABILITY_HIGH),
                 evidence=ExploitationEvidence(poc=True),
                 include_decision=False,
                 provenance=Provenance(assessed_at="2026-08-27T00:00:00Z"),
@@ -924,6 +1081,7 @@ class TestEndToEnd:
                 asi_category="ASI06",
                 agentic_applicability=dict(APPLICABILITY),
                 metric_evidence=dict(METRIC_EVIDENCE),
+                agent_untraceability=dict(UNTRACEABILITY_HIGH),
                 evidence=ExploitationEvidence(observed_local=True),
                 include_decision=False,
                 provenance=Provenance(assessed_at="2026-08-27T00:00:00Z"),
@@ -947,6 +1105,7 @@ class TestEndToEnd:
                 },
                 agentic_applicability=dict(APPLICABILITY),
                 metric_evidence=dict(METRIC_EVIDENCE),
+                agent_untraceability=dict(UNTRACEABILITY_HIGH),
                 evidence=ExploitationEvidence(poc=True),
                 include_decision=False,
                 provenance=Provenance(assessed_at="2026-08-27T00:00:00Z"),
@@ -957,10 +1116,11 @@ class TestEndToEnd:
         assert report["risk_category"]["maestro_layer"] == "Agent Frameworks"
         assert report["risk_category"]["nearest_asi"] == "ASI02"
         validate_report(report)
+
     def test_priority_omitted_when_not_requested(self):
         assert "priority" not in self._assessment(include_priority=False)
 
-    def test_decision_defaults_unknown_publicly_exposed_to_yes(self):
+    def test_decision_treats_unknown_publicly_exposed_as_internal(self):
         report = assess(
             Assessment(
                 finding_id="x",
@@ -970,6 +1130,7 @@ class TestEndToEnd:
                 asi_category="ASI06",
                 agentic_applicability=dict(APPLICABILITY),
                 metric_evidence=dict(METRIC_EVIDENCE),
+                agent_untraceability=dict(UNTRACEABILITY_HIGH),
                 include_decision=True,
                 automatable=False,
                 technical_impact="partial",
@@ -977,10 +1138,10 @@ class TestEndToEnd:
                 provenance=Provenance(assessed_at="2026-08-27T00:00:00Z"),
             )
         )
-        assert report["decision"]["decision_points"]["publicly_exposed"] is True
-        assert "unknown Publicly Exposed" in report["decision"]["decision_points"][
-            "publicly_exposed_source"
-        ]
+        assert report["decision"]["decision_points"]["publicly_exposed"] is False
+        assert "Unknown exposure treated as internal" in report["decision"][
+            "decision_points"
+        ]["publicly_exposed_source"]
 
     def test_report_validates_against_schema(self):
         validate_report(self._assessment())
@@ -991,4 +1152,5 @@ class TestEndToEnd:
         validate_assessment_input(data)
         report = assess(assessment_from_payload(data))
         validate_report(report)
-        assert report["scores"]["mode1_interpretation"]["aivss"] == EXAMPLE_CVSS_BTE
+        assert report["scores"]["cvss_bte"] == EXAMPLE_CVSS_BTE
+        assert report["scores"]["aivss"] == EXAMPLE_AIVSS

@@ -16,14 +16,15 @@
     "agentic_applicability",
     "cvss",
     "agentic_ai_profile",
+    "agent_untraceability",
     "scores",
     "provenance"
   ],
   "properties": {
     "aivss_version": {"const": "1.0"},
     "report_schema_version": {"const": "1.0"},
-    "rubric_version": {"const": "1.0.0"},
-    "calculator_version": {"const": "1.0.1"},
+    "rubric_version": {"const": "1.1.0"},
+    "calculator_version": {"const": "1.1.0"},
     "specification_status": {"const": "candidate"},
     "finding_id": {"type": "string", "minLength": 1},
     "path_id": {"type": "string", "minLength": 1},
@@ -33,6 +34,7 @@
     "agentic_applicability": {"$ref": "#/$defs/agenticApplicability"},
     "cvss": {"$ref": "#/$defs/cvss"},
     "agentic_ai_profile": {"$ref": "#/$defs/agenticProfile"},
+    "agent_untraceability": {"$ref": "#/$defs/agentUntraceability"},
     "scores": {"$ref": "#/$defs/scores"},
     "provenance": {"$ref": "#/$defs/provenance"},
     "decision": {"$ref": "#/$defs/decision"},
@@ -41,10 +43,7 @@
   "$defs": {
     "score": {"type": "number", "minimum": 0, "maximum": 10},
     "nullableScore": {
-      "oneOf": [
-        {"$ref": "#/$defs/score"},
-        {"type": "null"}
-      ]
+      "oneOf": [{"$ref": "#/$defs/score"}, {"type": "null"}]
     },
     "riskCategory": {
       "oneOf": [
@@ -61,13 +60,7 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "id",
-            "name",
-            "scheme",
-            "maestro_layer",
-            "threat_description"
-          ],
+          "required": ["id", "name", "scheme", "maestro_layer", "threat_description"],
           "properties": {
             "id": {"const": "MAESTRO-EXTENDED"},
             "name": {"const": "MAESTRO-extended finding"},
@@ -102,11 +95,7 @@
         "model_directed_goal_pursuit": {"const": true},
         "action_selection_or_sequencing": {"const": true},
         "rationale": {"type": "string", "minLength": 1},
-        "evidence_refs": {
-          "type": "array",
-          "minItems": 1,
-          "items": {"type": "string", "minLength": 1}
-        }
+        "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
       }
     },
     "cvss": {
@@ -116,7 +105,7 @@
       "properties": {
         "vector": {
           "type": "string",
-          "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
+          "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
         },
         "macrovector": {"type": "string", "pattern": "^[0-2]{6}$"},
         "cvss_bte": {"$ref": "#/$defs/score"},
@@ -143,7 +132,7 @@
             "epss_date": {"type": ["string", "null"], "minLength": 1},
             "input_vector": {
               "type": "string",
-              "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
+              "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
             }
           }
         }
@@ -155,17 +144,9 @@
       "required": ["rationale", "evidence_refs"],
       "properties": {
         "rationale": {"type": "string", "minLength": 1},
-        "evidence_refs": {
-          "type": "array",
-          "minItems": 1,
-          "items": {"type": "string", "minLength": 1}
-        },
+        "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
         "method": {
-          "enum": [
-            "deterministic-proof",
-            "empirical",
-            "insufficient-evidence"
-          ]
+          "enum": ["deterministic-proof", "empirical", "insufficient-evidence"]
         },
         "deterministic_outcome": {"enum": ["success", "failure", null]},
         "successes": {"type": ["integer", "null"], "minimum": 0},
@@ -175,17 +156,7 @@
         "budget_enforced": {"type": ["boolean", "null"]},
         "independent": {"type": ["boolean", "null"]},
         "lower_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-        "upper_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-        "ceiling_defined": {"type": ["boolean", "null"]},
-        "coverage_complete": {"type": ["boolean", "null"]},
-        "fail_closed": {"type": ["boolean", "null"]},
-        "bypass_demonstrated": {"type": ["boolean", "null"]},
-        "retrieval_tested": {"type": ["boolean", "null"]},
-        "ordered_actions_reconstructable": {"type": ["boolean", "null"]},
-        "affected_principals_bounded": {"type": ["boolean", "null"]},
-        "required_fields_complete": {"type": ["boolean", "null"]},
-        "integrity_protected": {"type": ["boolean", "null"]},
-        "retention_verified": {"type": ["boolean", "null"]}
+        "upper_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
       }
     },
     "metricEvidence": {
@@ -205,53 +176,153 @@
         "vector",
         "metrics",
         "complete",
+        "provisional",
         "agentic_effect_class",
         "agentic_effect_class_label",
-        "agentic_effect_class_status"
+        "agentic_effect_class_status",
+        "agentic_uplift_u"
       ],
       "properties": {
         "vector": {
           "type": "string",
-          "pattern": "^AIVSS:1\\.0/LC:(D|I|M|N|X)/CP:(C|S|N|X)/AP:(L|C|N|X)/SR:(R|P|U|X)/EX:(W|M|N|X)/PT:(H|M|L|X)/CA:(W|M|N|X)/TD:(H|M|L|X)$"
+          "pattern": "^AIVSS:1\\.0/LC:(D|I|M|N|X)/CP:(C|S|N|X)/AP:(L|C|N|X)/SR:(R|P|U|X)/ES:(W|M|N|X)$"
         },
         "metrics": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD"],
+          "required": ["LC", "CP", "AP", "SR", "ES"],
           "properties": {
-            "LC": {"allOf": [{"$ref": "#/$defs/metricEvidence"}, {"properties": {"value": {"enum": ["D", "I", "M", "N", "X"]}}}]},
-            "CP": {"allOf": [{"$ref": "#/$defs/metricEvidence"}, {"properties": {"value": {"enum": ["C", "S", "N", "X"]}}}]},
-            "AP": {"allOf": [{"$ref": "#/$defs/metricEvidence"}, {"properties": {"value": {"enum": ["L", "C", "N", "X"]}}}]},
-            "SR": {"allOf": [{"$ref": "#/$defs/metricEvidence"}, {"properties": {"value": {"enum": ["R", "P", "U", "X"]}}}]},
-            "EX": {"allOf": [{"$ref": "#/$defs/metricEvidence"}, {"properties": {"value": {"enum": ["W", "M", "N", "X"]}}}]},
-            "PT": {"allOf": [{"$ref": "#/$defs/metricEvidence"}, {"properties": {"value": {"enum": ["H", "M", "L", "X"]}}}]},
-            "CA": {"allOf": [{"$ref": "#/$defs/metricEvidence"}, {"properties": {"value": {"enum": ["W", "M", "N", "X"]}}}]},
-            "TD": {"allOf": [{"$ref": "#/$defs/metricEvidence"}, {"properties": {"value": {"enum": ["H", "M", "L", "X"]}}}]}
+            "LC": {
+              "allOf": [
+                {"$ref": "#/$defs/metricEvidence"},
+                {
+                  "properties": {"value": {"enum": ["D", "I", "M", "N", "X"]}}
+                }
+              ]
+            },
+            "CP": {
+              "allOf": [
+                {"$ref": "#/$defs/metricEvidence"},
+                {
+                  "properties": {"value": {"enum": ["C", "S", "N", "X"]}}
+                }
+              ]
+            },
+            "AP": {
+              "allOf": [
+                {"$ref": "#/$defs/metricEvidence"},
+                {
+                  "properties": {"value": {"enum": ["L", "C", "N", "X"]}}
+                }
+              ]
+            },
+            "SR": {
+              "allOf": [
+                {"$ref": "#/$defs/metricEvidence"},
+                {
+                  "properties": {"value": {"enum": ["R", "P", "U", "X"]}}
+                }
+              ]
+            },
+            "ES": {
+              "allOf": [
+                {"$ref": "#/$defs/metricEvidence"},
+                {
+                  "properties": {"value": {"enum": ["W", "M", "N", "X"]}}
+                }
+              ]
+            }
           }
         },
         "complete": {"type": "boolean"},
+        "provisional": {"type": "boolean"},
         "agentic_effect_class": {"enum": ["A0", "A1", "A2", "AX"]},
-        "agentic_effect_class_label": {"type": "string", "minLength": 1},
-        "agentic_effect_class_status": {"const": "candidate-unvalidated"}
+        "agentic_effect_class_label": {
+          "enum": ["None", "Present", "Substantial", "Insufficient evidence"]
+        },
+        "agentic_effect_class_status": {"const": "candidate-unvalidated"},
+        "agentic_uplift_u": {
+          "oneOf": [{"type": "integer", "minimum": 0, "maximum": 10}, {"type": "null"}]
+        }
       }
     },
-    "mode1Score": {
+    "agentUntraceability": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["aivss", "cvss_bte", "status", "basis"],
+      "required": ["value", "definition", "evidence"],
       "properties": {
-        "aivss": {"$ref": "#/$defs/score"},
-        "cvss_bte": {"$ref": "#/$defs/score"},
-        "status": {"const": "normative"},
-        "basis": {"type": "string", "minLength": 1}
+        "value": {"enum": ["High", "Moderate", "Low", "X"]},
+        "definition": {"type": "string", "minLength": 1},
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rationale",
+            "evidence_refs",
+            "retrieval_tested",
+            "ordered_actions_reconstructable",
+            "affected_principals_bounded",
+            "required_fields_complete",
+            "integrity_protected",
+            "retention_verified"
+          ],
+          "properties": {
+            "rationale": {"type": "string", "minLength": 1},
+            "evidence_refs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "retrieval_tested": {"type": ["boolean", "null"]},
+            "ordered_actions_reconstructable": {"type": ["boolean", "null"]},
+            "affected_principals_bounded": {"type": ["boolean", "null"]},
+            "required_fields_complete": {"type": ["boolean", "null"]},
+            "integrity_protected": {"type": ["boolean", "null"]},
+            "retention_verified": {"type": ["boolean", "null"]}
+          }
+        }
       }
     },
     "scores": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["mode1_interpretation"],
+      "required": [
+        "cvss_bte",
+        "cvss_nomenclature",
+        "cvss_band",
+        "agentic_effect_class",
+        "provisional",
+        "agentic_uplift_u",
+        "aivss",
+        "aivss_band",
+        "table_cell",
+        "rule",
+        "status",
+        "basis"
+      ],
       "properties": {
-        "mode1_interpretation": {"$ref": "#/$defs/mode1Score"}
+        "cvss_bte": {"$ref": "#/$defs/score"},
+        "cvss_nomenclature": {
+          "enum": ["CVSS-B", "CVSS-BT", "CVSS-BE", "CVSS-BTE"]
+        },
+        "cvss_band": {
+          "enum": ["None", "Low", "Medium", "High", "Critical"]
+        },
+        "agentic_effect_class": {"enum": ["A0", "A1", "A2", "AX"]},
+        "provisional": {"type": "boolean"},
+        "agentic_uplift_u": {
+          "oneOf": [{"type": "integer", "minimum": 0, "maximum": 10}, {"type": "null"}]
+        },
+        "aivss": {"$ref": "#/$defs/score"},
+        "aivss_band": {
+          "enum": ["None", "Low", "Medium", "High", "Critical"]
+        },
+        "table_cell": {"$ref": "#/$defs/nullableScore"},
+        "rule": {
+          "enum": ["cvss_bte_unchanged", "cell", "cvss_bte_floor"]
+        },
+        "status": {"const": "normative"},
+        "basis": {"type": "string", "minLength": 1}
       }
     },
     "provenance": {
@@ -260,23 +331,16 @@
       "required": ["assessor", "assessor_kind", "tool", "tool_version", "assessed_at"],
       "properties": {
         "assessor": {
-          "oneOf": [
-            {"type": "string", "minLength": 1},
-            {"type": "null"}
-          ]
+          "oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]
         },
-        "assessor_kind": {"enum": ["human", "scanner", "llm_assisted", "imported"]},
+        "assessor_kind": {
+          "enum": ["human", "scanner", "llm_assisted", "imported"]
+        },
         "tool": {
-          "oneOf": [
-            {"type": "string", "minLength": 1},
-            {"type": "null"}
-          ]
+          "oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]
         },
         "tool_version": {
-          "oneOf": [
-            {"type": "string", "minLength": 1},
-            {"type": "null"}
-          ]
+          "oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]
         },
         "assessed_at": {
           "type": "string",
@@ -297,7 +361,7 @@
         "technical_impact",
         "technical_impact_source",
         "agentic_effect_class",
-        "td"
+        "agent_untraceability"
       ],
       "properties": {
         "in_kev": {"type": "boolean"},
@@ -326,7 +390,7 @@
           ]
         },
         "agentic_effect_class": {"enum": ["A0", "A1", "A2", "AX"]},
-        "td": {"enum": ["H", "M", "L", "X"]}
+        "agent_untraceability": {"enum": ["High", "Moderate", "Low", "X", null]}
       }
     },
     "exploitation": {
@@ -334,7 +398,9 @@
       "additionalProperties": false,
       "required": ["rung", "rationale", "state", "authoritative", "epss", "epss_date"],
       "properties": {
-        "rung": {"enum": ["cisa_kev", "vulnrichment_active", "observed_local", "poc", "none"]},
+        "rung": {
+          "enum": ["cisa_kev", "vulnrichment_active", "observed_local", "poc", "none"]
+        },
         "rationale": {"type": "string", "minLength": 1},
         "state": {
           "enum": [
@@ -392,25 +458,18 @@
             "methodology_url": {"const": "https://certcc.github.io/SSVC/"},
             "decision_table": {"const": "cisa:DT_BOD2604:1.0.0"},
             "outcome_namespace": {"const": "cisa:BOD2604:1.0.0"},
-            "decision_table_source": {
-              "const": "https://certcc.github.io/SSVC/howto/cisa_response/"
-            },
+            "decision_table_source": {"const": "https://certcc.github.io/SSVC/howto/cisa_response/"},
             "decision_point_namespaces": {"type": "object"},
             "extension_note": {"type": "string"}
           }
         },
         "cve_id": {
-          "oneOf": [
-            {"type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$"},
-            {"type": "null"}
-          ]
+          "oneOf": [{"type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$"}, {"type": "null"}]
         },
         "fceb_bod_2604_scope": {"type": "boolean"},
         "bod_2604_model_version": {"const": "cisa:BOD2604:1.0.0"},
         "bod_2604_decision_table": {"const": "cisa:DT_BOD2604:1.0.0"},
-        "bod_2604_model_source": {
-          "const": "https://certcc.github.io/SSVC/howto/cisa_response/"
-        },
+        "bod_2604_model_source": {"const": "https://certcc.github.io/SSVC/howto/cisa_response/"},
         "bod_2604_directive": {
           "const": "https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk"
         },
@@ -429,29 +488,23 @@
         "bod_2604_guidance_label": {"type": "string"},
         "bod_2604_analogy_timeline": {"enum": ["FSU", "60D", "14D", "3D", "3DF"]},
         "bod_2604_analogy_label": {"type": "string"},
-        "aivss_recommended_timeline": {
-          "enum": ["FSU", "60D", "14D", "3D", "3DF", null]
-        },
-        "aivss_recommended_label": {"type": ["string", "null"]},
-        "overlay_triggered": {"type": ["boolean", "null"]},
-        "escalated": {"type": ["boolean", "null"]},
+        "aivss_recommended_timeline": {"enum": ["FSU", "60D", "14D", "3D", "3DF"]},
+        "aivss_recommended_label": {"type": "string", "minLength": 1},
+        "overlay_triggered": {"type": "boolean"},
+        "escalated": {"type": "boolean"},
         "forensic_triage_required": {"type": "boolean"},
         "forensic_triage_indicated": {"type": "boolean"},
-        "aivss_recommended_forensic_triage_indicated": {
-          "type": ["boolean", "null"]
-        },
+        "aivss_recommended_forensic_triage_indicated": {"type": "boolean"},
         "overlay_status": {
-          "enum": ["experimental-uncalibrated", "incomplete", "not-assessed"]
+          "enum": ["experimental-uncalibrated", "provisional"]
         },
+        "missing_metadata_faq_applied": {"const": true},
+        "bod_2604_faq_source": {"type": "string", "minLength": 1},
         "note": {"type": "string", "minLength": 1}
       },
       "oneOf": [
         {
-          "required": [
-            "bod_2604_timeline",
-            "bod_2604_label",
-            "forensic_triage_required"
-          ],
+          "required": ["bod_2604_timeline", "bod_2604_label", "forensic_triage_required"],
           "properties": {
             "decision_basis": {"const": "cisa_bod_26_04"},
             "compliance_applicable": {"const": true},
@@ -517,33 +570,20 @@
         {
           "if": {
             "properties": {
-              "overlay_status": {"const": "experimental-uncalibrated"}
+              "decision_points": {
+                "properties": {"agentic_effect_class": {"const": "AX"}}
+              }
             }
           },
           "then": {
-            "properties": {
-              "aivss_recommended_timeline": {"type": "string"},
-              "aivss_recommended_label": {"type": "string"},
-              "overlay_triggered": {"type": "boolean"},
-              "escalated": {"type": "boolean"},
-              "aivss_recommended_forensic_triage_indicated": {
-                "type": "boolean"
-              }
-            }
+            "properties": {"overlay_status": {"const": "provisional"}}
           },
           "else": {
-            "properties": {
-              "aivss_recommended_timeline": {"type": "null"},
-              "aivss_recommended_label": {"type": "null"},
-              "overlay_triggered": {"type": "null"},
-              "escalated": {"type": "null"},
-              "aivss_recommended_forensic_triage_indicated": {
-                "type": "null"
-              }
-            }
+            "properties": {"overlay_status": {"const": "experimental-uncalibrated"}}
           }
         }
-      ]
+      ],
+      "dependentRequired": {"missing_metadata_faq_applied": ["bod_2604_faq_source"]}
     },
     "priority": {
       "type": "object",
@@ -551,16 +591,13 @@
       "required": ["aivss_p", "band", "terms", "scope", "status"],
       "properties": {
         "aivss_p": {"type": "integer", "minimum": 0, "maximum": 100},
-        "band": {"enum": ["Immediate", "This sprint", "Scheduled", "Backlog"]},
+        "band": {
+          "enum": ["Immediate", "This sprint", "Scheduled", "Backlog"]
+        },
         "terms": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "severity_norm",
-            "business_criticality",
-            "reach",
-            "likelihood"
-          ],
+          "required": ["severity_norm", "business_criticality", "reach", "likelihood"],
           "properties": {
             "severity_norm": {"type": "number", "minimum": 0, "maximum": 1},
             "business_criticality": {"enum": [0.35, 0.65, 1.0]},

@@ -4,12 +4,24 @@
   "title": "Stolen service credential used for lateral agent actions",
   "summary": "Abuse of agent identity or privileges to act on resources beyond the attacker's direct reach.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H/E:A",
-  "aivss_vector": "AIVSS:1.0/LC:M/CP:N/AP:L/SR:R/EX:M/PT:M/CA:N/TD:L",
+  "aivss_vector": "AIVSS:1.0/LC:M/CP:N/AP:L/SR:R/ES:M",
   "publicly_exposed": false,
   "automatable": true,
   "technical_impact": "total",
   "evidence": {
     "observed_local": true
+  },
+  "agent_untraceability": {
+    "rationale": "Synthetic reference fact for AIVSS-ASI03-001: A retrieval exercise verifies all required correlated, integrity-protected, and retained records.",
+    "evidence_refs": [
+      "fixture://AIVSS-ASI03-001/untraceability"
+    ],
+    "retrieval_tested": true,
+    "ordered_actions_reconstructable": true,
+    "affected_principals_bounded": true,
+    "required_fields_complete": true,
+    "integrity_protected": true,
+    "retention_verified": true
   },
   "path_id": "AIVSS-ASI03-001-PATH-1",
   "agentic_applicability": {
@@ -36,7 +48,7 @@
       ]
     },
     "AP": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI03-001: Compromised intent, instructions, memory, or authority crosses a trust boundary to other agents, other tenants, or downstream systems.",
+      "rationale": "Synthetic reference fact for AIVSS-ASI03-001: Compromised intent or authority crosses a trust boundary into another agent, tenant, principal or policy domain. Impact on downstream systems is scored in CVSS SC/SI/SA, not here.",
       "evidence_refs": [
         "fixture://AIVSS-ASI03-001/ap"
       ]
@@ -56,39 +68,11 @@
       "lower_bound": 0.9172621864014352,
       "upper_bound": 1.0
     },
-    "EX": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI03-001: One or more vetted extensions are fixed and allowlisted, with schema-validated arguments and least-privilege credentials enforced outside model output.",
+    "ES": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI03-001: Extensions are allowlisted, but material gaps remain in argument schemas, credentials or callable operations.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI03-001/ex"
+        "fixture://AIVSS-ASI03-001/es"
       ]
-    },
-    "PT": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI03-001: Synthetic provider ref-provider and deployment model-ref-v1 are fixed under config-ref-v1 and changes are auditable, but provider-side artifact contents cannot be verified at runtime.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI03-001/pt"
-      ]
-    },
-    "CA": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI03-001: Tested fail-closed principal and tenant ceilings bound tokens, paid calls, queued work, fan-out, retries, and concurrency.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI03-001/ca"
-      ],
-      "ceiling_defined": true,
-      "coverage_complete": true,
-      "fail_closed": true,
-      "bypass_demonstrated": false
-    },
-    "TD": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI03-001: A retrieval exercise verifies all required correlated, integrity-protected, and retained records.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI03-001/td"
-      ],
-      "retrieval_tested": true,
-      "ordered_actions_reconstructable": true,
-      "affected_principals_bounded": true,
-      "required_fields_complete": true,
-      "integrity_protected": true,
-      "retention_verified": true
     }
   },
   "include_decision": true,
@@ -97,7 +81,7 @@
     "assessor": "synthetic-reference-fixture",
     "assessor_kind": "imported",
     "tool": "aivss-calc",
-    "tool_version": "1.0.1",
+    "tool_version": "1.1.0",
     "assessed_at": "2026-08-27T00:00:00Z"
   }
 }

@@ -15,16 +15,21 @@ from .ai_metrics import (
     AGENTIC_METRIC_ORDER,
     AGENTIC_METRIC_SUMMARIES,
     AGENTIC_METRICS,
-    ASSURANCE_AGENTIC_METRICS,
     CLASSIFYING_AGENTIC_METRICS,
     EFFECT_CLASS_STATUS,
+    UNTRACEABILITY_DEFINITIONS,
+    UPLIFT_AGENTIC_METRICS,
+    UPLIFT_TABLE,
     AIProfile,
+    check_sr_at,
+    convert_legacy_vector,
     parse_aivss_vector,
     split_ai_vector,
 )
 from .cvss_metrics import CVSS_GROUP_INFO, cvss_metric_info
-from .cvss_score import score_cvss_bte, severity_rating
+from .cvss_score import score_cvss_bte
 from .decision import TIMELINE_LABELS, TIMELINE_URGENCY, ExploitationEvidence, decide
+from .lookup import AIVSS_BASIS, TABLE_6, aivss_lookup, cvss_nomenclature
 from .macrovector import (
     BASE_METRICS,
     ENV_REQUIREMENT_METRICS,
@@ -37,11 +42,11 @@ from .scenarios import SCENARIOS
 from .taxonomy import ASI_TOP_10
 from .versions import CALCULATOR_VERSION, RUBRIC_VERSION, SPEC_VERSION
 
-# Plain-language help for the Level 2 decision inputs and the result panel.
+# Plain-language help for the Conformance Level 2 decision inputs and the result panel.
 DECISION_INPUT_INFO: dict[str, dict[str, Any]] = {
     "enabled": {
         "summary": (
-            "Adds the Level 2 decision track: the unmodified SSVC / BOD 26-04 "
+            "Adds the Conformance Level 2 decision track: the unmodified SSVC / BOD 26-04 "
             "timeline plus the non-binding AIVSS overlay."
         ),
     },
@@ -89,6 +94,16 @@ DECISION_INPUT_INFO: dict[str, dict[str, Any]] = {
             ),
         },
     },
+    "agent_untraceability": {
+        "summary": (
+            "Agent untraceability from a documented retrieval exercise on the "
+            "deployment. Mandatory report metadata; it does not change the AIVSS "
+            "score or the timeline."
+        ),
+        "values": {
+            label: definition for label, definition in UNTRACEABILITY_DEFINITIONS.items()
+        },
+    },
     "cve_id": {
         "summary": (
             "The CVE ID, if this finding has one. KEV, Vulnrichment and BOD "
@@ -116,13 +131,23 @@ DECISION_INPUT_INFO: dict[str, dict[str, Any]] = {
 
 RESULT_INFO: dict[str, str] = {
     "severity": (
-        "Normative AIVSS severity: the CVSS v4.0 Base + Threat + Environmental score. "
-        "Agentic metrics never add to this number."
+        "AIVSS, read from Lookup Table AIVSS (Table 6) by the CVSS-BTE band and the "
+        "Effect Class. A0 or AX keep CVSS-BTE; A1 or A2 take the higher of the cell "
+        "and CVSS-BTE, so AIVSS is never lower than CVSS-BTE."
     ),
-    "severity_rating": "The CVSS v4.0 qualitative band this score falls in.",
+    "severity_rating": "The FIRST qualitative band the AIVSS value falls in.",
+    "cvss_bte": (
+        "The unchanged CVSS v4.0 score from the FIRST algorithm, labelled with the "
+        "FIRST nomenclature for the metric groups assessed. Always published beside AIVSS."
+    ),
+    "uplift": (
+        "Agentic Uplift U (Table 5), an informative 0-10 ordinal label from the "
+        "Effect Class, SR and ES. No decision uses U and it is never added to CVSS."
+    ),
     "effect_class": (
-        "Ordinal class derived from LC, CP, AP and SR. Only A2 can trigger the "
-        "remediation overlay, and no class changes the severity number."
+        "Ordinal class from the ordered ladder on LC, CP, AP and SR (A2, A1, AX, A0; "
+        "first match wins). It selects the Table 6 column; only A2 triggers the "
+        "remediation overlay."
     ),
     "macrovector": (
         "The CVSS v4.0 equivalence class (EQ1-EQ6) this vector belongs to. The score "
@@ -139,38 +164,60 @@ RESULT_INFO: dict[str, str] = {
 }
 
 PROFILE_NOTE = (
-    "Normative AIVSS severity equals CVSS-BTE. "
-    "LC/CP/AP/SR determine the ordinal Agentic Effect Class; "
-    "EX/PT/CA/TD are descriptive profile metadata."
+    "AIVSS is read from Lookup Table AIVSS (Table 6) and is never lower than "
+    "CVSS-BTE, which is published unchanged beside it. LC/CP/AP/SR determine the "
+    "Effect Class; ES enters only the informative Lookup Table U."
 )
 
 
 def profile_report(cvss_vector: str, profile: AIProfile) -> dict[str, Any]:
-    """Score a CVSS v4.0 vector and describe its Agentic AI profile."""
+    """Score a CVSS v4.0 vector with its Agentic AI profile."""
     metrics = parse_cvss_vector(cvss_vector)
+    check_sr_at(profile.sr, metrics["AT"])
     score = score_cvss_bte(cvss_vector)
+    effect = profile.agentic_effect_class()
+    lookup = aivss_lookup(score, effect)
     return {
-        "mode": "interpretation",
+        "mode": "lookup",
         "status": "normative",
         "cvss_vector": cvss_vector,
         "aivss_vector": profile.to_vector(),
         "macrovector": macrovector(metrics),
         "cvss_bte": score,
-        "aivss": score,
-        "severity_rating": severity_rating(score),
+        "cvss_nomenclature": cvss_nomenclature(metrics),
+        "cvss_band": lookup["cvss_band"],
+        "aivss": lookup["aivss"],
+        "severity_rating": lookup["aivss_band"],
+        "table_cell": lookup["table_cell"],
+        "rule": lookup["rule"],
+        "agentic_uplift_u": profile.agentic_uplift_u(),
+        "provisional": profile.provisional,
+        "basis": AIVSS_BASIS,
         "note": PROFILE_NOTE,
         "agentic_ai_profile": profile.describe(),
-        "agentic_effect_class": profile.agentic_effect_class(),
+        "agentic_effect_class": effect,
         "agentic_effect_class_status": EFFECT_CLASS_STATUS,
     }
 
 
 def profile_from_vectors(cvss_vector: str, aivss_vector: str) -> dict[str, Any]:
-    """Score a CVSS vector paired with a separate AIVSS extension vector."""
+    """Score a CVSS vector paired with a separate AIVSS extension vector.
+
+    A legacy eight-metric vector is converted to the five-metric form and the
+    conversion is reported under ``migration``.
+    """
     cvss_only, embedded = split_ai_vector(cvss_vector)
     if embedded is not None:
         raise ValueError("pass the AIVSS vector separately from the CVSS vector")
-    return profile_report(cvss_only, parse_aivss_vector(aivss_vector))
+    migration = None
+    keys = {part.partition(":")[0] for part in aivss_vector.strip().split("/")[1:]}
+    if keys & {"EX", "PT", "CA", "TD"}:
+        migration = convert_legacy_vector(aivss_vector)
+        aivss_vector = migration["aivss_vector"]
+    report = profile_report(cvss_only, parse_aivss_vector(aivss_vector))
+    if migration is not None:
+        report["migration"] = migration
+    return report
 
 
 def decision_report(
@@ -180,24 +227,21 @@ def decision_report(
     agentic_effect_class: str | None = None,
     **decision_inputs: Any,
 ) -> dict[str, Any]:
-    """Run the SSVC/BOD decision, taking class and TD from a vector if given."""
+    """Run the SSVC/BOD decision, taking the Effect Class from a vector if given."""
     effect_class = agentic_effect_class or "A0"
-    td = None
     if vector:
         _, embedded = split_ai_vector(vector)
         if embedded is not None:
-            td = embedded.td
             effect_class = embedded.agentic_effect_class()
     return decide(
         evidence=evidence,
         agentic_effect_class=effect_class,
-        td=td,
         **decision_inputs,
     )
 
 
 def rubric() -> dict[str, Any]:
-    """Exhaustive value sets and definitions for all eight Agentic AI metrics."""
+    """Value sets and definitions for the five Agentic AI metrics."""
     metrics: dict[str, dict[str, dict[str, str]]] = {}
     for name in AGENTIC_METRIC_ORDER:
         metrics[name] = {
@@ -208,8 +252,11 @@ def rubric() -> dict[str, Any]:
         "rubric_version": RUBRIC_VERSION,
         "reference": "docs/METRIC-RUBRIC.md",
         "classifying_metrics": list(CLASSIFYING_AGENTIC_METRICS),
-        "assurance_metrics": list(ASSURANCE_AGENTIC_METRICS),
+        "uplift_metrics": list(UPLIFT_AGENTIC_METRICS),
         "metrics": metrics,
+        "agent_untraceability": dict(UNTRACEABILITY_DEFINITIONS),
+        "lookup_table_u": {key: dict(row) for key, row in UPLIFT_TABLE.items()},
+        "lookup_table_aivss": {band: dict(row) for band, row in TABLE_6.items()},
     }
 
 
@@ -248,6 +295,7 @@ def calculator_catalog() -> dict[str, Any]:
                 "summary": s["summary"],
                 "cvss_vector": s["cvss_vector"],
                 "aivss_vector": s["aivss_vector"],
+                "agent_untraceability": s["agent_untraceability"],
                 "publicly_exposed": s["publicly_exposed"],
                 "automatable": s["automatable"],
                 "technical_impact": s["technical_impact"],
@@ -260,6 +308,13 @@ def calculator_catalog() -> dict[str, Any]:
 
 def _web_decision(request: dict[str, Any]) -> dict[str, Any]:
     evidence = request.get("evidence") or {}
+    aivss_vector = request["aivss_vector"]
+    untraceability = request.get("agent_untraceability")
+    keys = {part.partition(":")[0] for part in aivss_vector.strip().split("/")[1:]}
+    if keys & {"EX", "PT", "CA", "TD"}:
+        migration = convert_legacy_vector(aivss_vector)
+        aivss_vector = migration["aivss_vector"]
+        untraceability = untraceability or migration["agent_untraceability"]
     return decision_report(
         evidence=ExploitationEvidence(
             cisa_kev=evidence.get("cisa_kev"),
@@ -269,7 +324,8 @@ def _web_decision(request: dict[str, Any]) -> dict[str, Any]:
             observed_local=evidence.get("observed_local", False),
             poc=evidence.get("poc", False),
         ),
-        vector=f"{request['cvss_vector']} {request['aivss_vector']}",
+        vector=f"{request['cvss_vector']} {aivss_vector}",
+        agent_untraceability=untraceability,
         publicly_exposed=request.get("publicly_exposed"),
         publicly_exposed_source=request.get("publicly_exposed_source"),
         decision_data_observed_at=request.get("decision_data_observed_at"),

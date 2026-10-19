@@ -229,7 +229,7 @@ def decide(
     publicly_exposed_source: str,
     decision_data_observed_at: str,
     agentic_effect_class: str = "A0",
-    td: str | None = None,
+    agent_untraceability: str | None = None,
     automatable: bool | None = None,
     technical_impact: str | None = None,
     cve_id: str | None = None,
@@ -314,8 +314,8 @@ def decide(
         )
     if agentic_effect_class not in ("A0", "A1", "A2", "AX"):
         raise ValueError("agentic_effect_class must be A0, A1, A2, or AX")
-    if td not in ("H", "M", "L", "X", None):
-        raise ValueError("td must be H, M, L, X, or omitted")
+    if agent_untraceability not in ("High", "Moderate", "Low", "X", None):
+        raise ValueError("agent_untraceability must be High, Moderate, Low, X, or omitted")
     if (
         automatable is not None
         and vulnrichment_automatable is not None
@@ -384,29 +384,24 @@ def decide(
             "it is not derived from CVSS"
         )
 
-    if metadata_both_missing:
-        base = "60D"
-    else:
-        base = bod_timeline(
-            in_kev=bool(evidence.cisa_kev),
-            publicly_exposed=publicly_exposed,
-            automatable=bool(automatable),
-            technical_impact=technical_impact,
-        )
-    if agentic_effect_class == "AX" or td == "X":
-        overlay_triggered = None
-        recommended = None
-        overlay_status = "incomplete"
-    elif td is None:
-        overlay_triggered = None
-        recommended = None
-        overlay_status = "not-assessed"
-    else:
-        # v1.0 SSVC extension: Agentic AI Effect Class A2 advances one outcome
-        # tier. TD (Traceability Deficit) is mandatory metadata — not an overlay input.
-        overlay_triggered = agentic_effect_class == "A2"
-        recommended = advance_timeline(base, 1 if overlay_triggered else 0)
-        overlay_status = "experimental-uncalibrated"
+    # Missing-metadata rule (CISA BOD 26-04 implementation guidance): for a
+    # non-KEV CVE with neither value published, the table is applied with
+    # Automatable no and Technical Impact total (14D if exposed, FSU if not).
+    base = bod_timeline(
+        in_kev=bool(evidence.cisa_kev),
+        publicly_exposed=publicly_exposed,
+        automatable=bool(automatable),
+        technical_impact=technical_impact,
+    )
+    # AIVSS overlay (organizational, categorical): Effect Class A2 advances the
+    # recommendation one tier; it never creates or shortens 3DF. An AX class
+    # cannot trigger it and marks the recommendation provisional. Agent
+    # untraceability is recorded only; it never changes a timeline.
+    overlay_triggered = agentic_effect_class == "A2"
+    recommended = advance_timeline(base, 1 if overlay_triggered else 0)
+    overlay_status = (
+        "provisional" if agentic_effect_class == "AX" else "experimental-uncalibrated"
+    )
 
     compliance_applicable = has_cve and fceb_bod_2604_scope
     if compliance_applicable:
@@ -429,8 +424,8 @@ def decide(
             "decision_point_namespaces": dict(SSVC_DECISION_POINTS),
             "extension_note": (
                 "Agentic AI Effect Class is a transparent fifth SSVC extension "
-                "input; TD (Traceability Deficit) is recorded but does not "
-                "modify the BOD outcome."
+                "input; agent untraceability is recorded but does not modify the "
+                "BOD outcome."
             ),
         },
         "bod_2604_model_version": BOD_2604_MODEL_VERSION,
@@ -449,17 +444,13 @@ def decide(
             "technical_impact": technical_impact,
             "technical_impact_source": impact_source,
             "agentic_effect_class": agentic_effect_class,
-            "td": td,
+            "agent_untraceability": agent_untraceability,
         },
         "aivss_recommended_timeline": recommended,
-        "aivss_recommended_label": TIMELINE_LABELS[recommended]
-        if recommended
-        else None,
+        "aivss_recommended_label": TIMELINE_LABELS[recommended],
         "overlay_triggered": overlay_triggered,
-        "escalated": recommended != base if recommended else None,
-        "aivss_recommended_forensic_triage_indicated": (
-            base == "3DF" if recommended else None
-        ),
+        "escalated": recommended != base,
+        "aivss_recommended_forensic_triage_indicated": base == "3DF",
         "overlay_status": overlay_status,
     }
     if metadata_both_missing:
