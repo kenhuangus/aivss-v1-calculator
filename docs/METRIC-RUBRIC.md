@@ -5,7 +5,7 @@ metrics (LC, CP, AP, SR, ES) and for the mandatory `agent_untraceability`
 metadata. [SCORING.md](SCORING.md) owns the Effect Class ladder and the lookup
 tables; [CVSS-MAPPING.md](CVSS-MAPPING.md) owns boundaries with CVSS.
 
-Rubric 1.1.0 aligns with the condensed specification. Compared with the 1.0.0
+Rubric 1.1.0 aligns with the AIVSS 1.0 specification. Compared with the 1.0.0
 draft rubric: EX is renamed ES (extension binding surface) and its values are
 redefined, PT and CA are withdrawn, and TD is replaced by agent untraceability
 metadata, which is not a vector metric.

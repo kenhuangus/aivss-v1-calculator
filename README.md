@@ -15,7 +15,7 @@ Two live resources are hosted for this project — no installation needed:
 2. **Interactive Slide Deck** — a 23-slide masterclass presentation covering
    the AIVSS 1.0 decoupled architecture, CVSS v4.0 interpretation, SSVC / BOD
    26-04 timelines, and the EchoLeak (`CVE-2025-32711`) case study. Use arrow
-   keys to navigate. The deck predates the condensed specification and still
+   keys to navigate. The deck predates the AIVSS 1.0 specification and still
    shows the draft eight-metric profile; the specification and this README
    are authoritative.
    **→ https://kenhuangus.github.io/aivss-v1-candidate/slides.html**
@@ -89,8 +89,8 @@ U 10 and AIVSS 9.5.
 
 Repository: https://github.com/kenhuangus/aivss-v1-candidate
 
-The reference calculator (`aivss-calc` 1.1.0) implements the condensed AIVSS
-1.0 specification at Conformance Levels 1 and 2:
+The reference calculator (`aivss-calc` 1.1.0) implements the AIVSS 1.0
+specification at Conformance Levels 1 and 2:
 
 1. Resolves Exploit Maturity (`E`) from the evidence ladder before severity
 2. Requires a complete five-metric Agentic AI Profile and an agent
@@ -170,7 +170,7 @@ OWASP does not endorse this AIVSS candidate.
 
 An interactive 23-slide HTML deck covers the AIVSS 1.0 decoupled architecture,
 CVSS v4.0 interpretations, SSVC / CISA BOD 26-04 timelines, and the EchoLeak
-(`CVE-2025-32711`) case study. It predates the condensed specification and
+(`CVE-2025-32711`) case study. It predates the AIVSS 1.0 specification and
 still shows the draft eight-metric profile — see the
 **[Try it online](#-try-it-online)** link at the top for the live deck.
 

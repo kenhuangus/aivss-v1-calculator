@@ -32,7 +32,7 @@ exploitation, or optimal remediation decisions.
 https://github.com/kenhuangus/aivss-v1-candidate
 
 The reference calculator (`aivss-calc` 1.1.0) implements Conformance Level 1
-and 2 assessment mechanics of the condensed specification: E resolution, the
+and 2 assessment mechanics of the AIVSS 1.0 specification: E resolution, the
 five-metric Agentic AI Profile, the Effect Class ladder, Lookup Tables U and
 AIVSS, agent untraceability metadata, ASI and MAESTRO-extended taxonomy, and
 SSVC/BOD decision tracks. The `legacy` subcommand reproduces withdrawn v0.x
@@ -143,7 +143,7 @@ specification text are released as minor versions, even when the rules above
 would call them major. The published specification fixes the extension vector
 prefix at `AIVSS:1.0`, so a major calculator version would advertise a break
 that the vector itself cannot show. Under this exception, calculator and rubric
-1.1.0 align the draft implementation with the condensed AIVSS 1.0
+1.1.0 align the draft implementation with the AIVSS 1.0
 specification: they replace the draft eight-metric vector with the five-metric
 form and add the Table 5 and Table 6 lookups. Draft vectors are converted with
 `aivss-calc migrate-vector`. The major-version rules apply in full once the

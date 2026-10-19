@@ -1,6 +1,6 @@
 # Specification figures
 
-Figures 1 to 6 of the AIVSS 1.0 condensed specification. Each PNG is rendered
+Figures 1 to 6 of the AIVSS 1.0 specification. Each PNG is rendered
 from the HTML source in `src/` (shared styles in `src/_base.css`, connector
 drawing in `src/_wires.js`) at 760 CSS px wide and 2x device scale.
 

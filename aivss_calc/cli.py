@@ -226,7 +226,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
 
 
 def cmd_migrate_vector(args: argparse.Namespace) -> int:
-    """Convert a draft eight-metric AIVSS vector to the condensed form."""
+    """Convert a draft eight-metric AIVSS vector to the five-metric form."""
     _emit(convert_legacy_vector(args.vector))
     return 0
 

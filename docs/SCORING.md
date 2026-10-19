@@ -1,7 +1,7 @@
 # AIVSS Calculator Algorithms
 
-This document defines calculator behavior for AIVSS 1.0 (condensed
-specification), rubric 1.1.0, calculator 1.1.0. Normative metric meanings live
+This document defines calculator behavior for the AIVSS 1.0
+specification, rubric 1.1.0, calculator 1.1.0. Normative metric meanings live
 in [METRIC-RUBRIC.md](METRIC-RUBRIC.md). Every step below is a category
 assignment, an ordered rule, or a table lookup; no arithmetic is performed on
 ordinal agentic levels.
@@ -181,7 +181,7 @@ and
 Vectors written for the AIVSS 1.0 draft (`LC/CP/AP/SR/EX/PT/CA/TD`) are rejected
 by the parser. Convert them with `aivss-calc migrate-vector` (or
 `convert_legacy_vector`): EX becomes ES, TD becomes `agent_untraceability`
-metadata, and PT and CA, which are not part of the condensed specification,
+metadata, and PT and CA, which are not part of the AIVSS 1.0 specification,
 are dropped and listed in the output. The web calculator converts a pasted
 draft vector automatically and shows the migration note. Re-assess
 untraceability with a retrieval exercise before publishing; the TD mapping is

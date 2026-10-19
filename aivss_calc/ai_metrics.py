@@ -1,4 +1,4 @@
-"""The AIVSS 1.0 Agentic AI profile (condensed specification).
+"""The AIVSS 1.0 Agentic AI profile (AIVSS 1.0 specification).
 
 Five categorical metrics describe residual agentic properties that CVSS-BTE does
 not measure. LC, CP, AP and SR assign the Agentic Effect Class by an ordered
@@ -401,7 +401,7 @@ AI_METRICS = AGENTIC_METRICS
 AGENTIC_METRIC_ORDER: tuple[str, ...] = ("LC", "CP", "AP", "SR", "ES")
 AI_METRIC_ORDER = AGENTIC_METRIC_ORDER
 
-# Draft (pre-condensed) eight-metric order, accepted only for migration.
+# Draft eight-metric order (pre-1.0), accepted only for migration.
 LEGACY_METRIC_ORDER: tuple[str, ...] = ("LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD")
 LEGACY_METRICS: dict[str, dict[str, tuple[str, str]]] = {
     **CLASSIFYING_AGENTIC_METRICS,
@@ -500,7 +500,7 @@ class AIProfile:
         return self.effect_class()
 
     def effect_class(self) -> str:
-        """Ordered rule ladder (condensed specification, Section 5.6).
+        """Ordered rule ladder (AIVSS 1.0 specification, Section 5.6).
 
         A clause applies when its own metrics are known, even if another
         classifying metric is X, so missing evidence never lowers the class
@@ -545,7 +545,7 @@ class AIProfile:
 
 
 def check_sr_at(sr: str, at: str) -> None:
-    """SR must agree with CVSS AT (condensed specification, Section 4.3).
+    """SR must agree with CVSS AT (AIVSS 1.0 specification, Section 4.3).
 
     FIRST defines AT:P to include attacks that may need to be launched
     multiple times against a single target, so SR:P or SR:U requires AT:P.
@@ -673,7 +673,7 @@ def parse_aivss_vector(vector: str) -> AIProfile:
     if any(key in ("EX", "PT", "CA", "TD") for key in keys):
         raise ValueError(
             "This is a legacy eight-metric AIVSS vector (EX, PT, CA, TD). The "
-            "condensed specification uses LC/CP/AP/SR/ES; convert it with "
+            "AIVSS 1.0 specification uses LC/CP/AP/SR/ES; convert it with "
             "convert_legacy_vector or 'aivss-calc migrate-vector'"
         )
     found: dict[str, str] = {}
@@ -720,9 +720,9 @@ def parse_aivss_vector(vector: str) -> AIProfile:
 
 
 def convert_legacy_vector(vector: str) -> dict[str, Any]:
-    """Convert a draft eight-metric vector to the condensed five-metric form.
+    """Convert a draft eight-metric vector to the five-metric form.
 
-    EX becomes ES. PT and CA are not part of the condensed specification and
+    EX becomes ES. PT and CA are not part of the AIVSS 1.0 specification and
     are dropped. TD maps to agent untraceability metadata.
     """
     parts = vector.strip().split("/")
@@ -756,7 +756,7 @@ def convert_legacy_vector(vector: str) -> dict[str, Any]:
         "note": (
             "Converted from a draft eight-metric vector: EX is now ES, TD is recorded "
             "as agent_untraceability metadata, and PT and CA are not part of the "
-            "condensed specification."
+            "AIVSS 1.0 specification."
         ),
     }
 
