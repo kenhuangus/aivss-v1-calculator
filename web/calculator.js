@@ -37,6 +37,7 @@
     supplemental: [],
     aivss: {},
     untraceability: null,
+    legacyVector: null,
     decision: emptyDecision(),
     presetId: null,
     edited: false,
@@ -129,7 +130,10 @@
     // A draft eight-metric vector is mapped to the five-metric form: EX becomes
     // ES, TD becomes agent untraceability, PT and CA are dropped.
     const parsed = Object.fromEntries(parseVector(aivssText, `AIVSS:${catalog.versions.spec}`));
-    if ("EX" in parsed || "TD" in parsed) {
+    const legacy = ["EX", "PT", "CA", "TD"].some((key) => key in parsed);
+    // Keep the draft vector so the engine can report the migration it implies.
+    state.legacyVector = legacy ? aivssText.trim() : null;
+    if (legacy) {
       if (parsed.EX && !parsed.ES) parsed.ES = parsed.EX;
       if (parsed.TD && LEGACY_TD[parsed.TD]) state.untraceability = LEGACY_TD[parsed.TD];
     }
@@ -476,6 +480,7 @@
         cvss_vector: cvssVector(),
         aivss_vector: aivssVector(),
         agent_untraceability: state.untraceability,
+        migrated_from: state.legacyVector,
         decision: decisionRequest(),
       });
     } catch (err) {

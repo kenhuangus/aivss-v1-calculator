@@ -296,6 +296,51 @@ def test_web_rejects_malformed_fields_with_an_error_response(field, value, messa
     assert message in response["error"]
 
 
+LEGACY = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H"
+CONVERTED = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
+
+
+def test_web_reports_migration_for_client_side_conversion():
+    response = _call(
+        {
+            "op": "calculate",
+            "cvss_vector": SCENARIOS[0]["cvss_vector"],
+            "aivss_vector": CONVERTED,
+            "migrated_from": LEGACY,
+        }
+    )
+    assert response["ok"], response
+    migration = response["result"]["profile"]["migration"]
+    assert migration["aivss_vector"] == CONVERTED
+    assert migration["dropped"] == {"PT": "H", "CA": "M"}
+
+
+def test_web_omits_migration_once_metrics_are_edited():
+    response = _call(
+        {
+            "op": "calculate",
+            "cvss_vector": SCENARIOS[0]["cvss_vector"],
+            "aivss_vector": CONVERTED.replace("ES:W", "ES:M"),
+            "migrated_from": LEGACY,
+        }
+    )
+    assert response["ok"], response
+    assert "migration" not in response["result"]["profile"]
+
+
+def test_web_rejects_non_string_migrated_from():
+    response = _call(
+        {
+            "op": "calculate",
+            "cvss_vector": SCENARIOS[0]["cvss_vector"],
+            "aivss_vector": CONVERTED,
+            "migrated_from": 5,
+        }
+    )
+    assert response["ok"] is False
+    assert "must be a string" in response["error"]
+
+
 def test_web_rejects_sr_probabilistic_without_at_p():
     response = _call(
         {

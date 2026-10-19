@@ -354,8 +354,11 @@ def handle_web_request(request_json: str) -> str:
 
     Request: {"op": "catalog"} or {"op": "calculate", "cvss_vector": ...,
     "aivss_vector": ..., "agent_untraceability": "High" | ... | null,
+    "migrated_from": <draft eight-metric vector> | null,
     "decision": {...} | null}. A supplied untraceability value is echoed in
-    the result and recorded in the decision. Validation errors are returned
+    the result and recorded in the decision. ``migrated_from`` lets a client
+    that converted a draft vector itself still receive the migration report,
+    which is attached when the conversion matches the scored vector. Validation errors are returned
     as {"ok": false, "error": message} rather than raised.
     """
     try:
@@ -376,6 +379,15 @@ def handle_web_request(request_json: str) -> str:
                     request["cvss_vector"], request["aivss_vector"]
                 )
             }
+            migrated_from = request.get("migrated_from")
+            if (
+                migrated_from is not None
+                and "migration" not in result["profile"]
+                and _is_legacy_vector(migrated_from)
+            ):
+                migration = convert_legacy_vector(migrated_from)
+                if migration["aivss_vector"] == result["profile"]["aivss_vector"]:
+                    result["profile"]["migration"] = migration
             if untraceability is not None:
                 result["agent_untraceability"] = untraceability
             decision_request = request.get("decision")
