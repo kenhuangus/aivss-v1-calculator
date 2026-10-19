@@ -21,7 +21,8 @@ async def render(files):
             await page.wait_for_selector('body[data-ready="1"]', timeout=15000)
             out = f.parent.parent / (f.stem + ".png")
             await (await page.query_selector("#fig")).screenshot(path=str(out))
-            print(out.relative_to(SRC.parent.parent.parent.parent))
+            root = SRC.parents[3]
+            print(out.relative_to(root) if out.is_relative_to(root) else out)
         await browser.close()
 
 

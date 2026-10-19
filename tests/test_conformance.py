@@ -208,11 +208,34 @@ def test_input_rejects_missing_untraceability():
         validate_assessment_input(payload)
 
 
-def test_input_schema_enforces_sr_at_rule():
+def _input_schema_validator():
+    schema = json.loads(
+        (REPO / "schemas" / "aivss-assessment-input-v1.0.json").read_text(encoding="utf-8")
+    )
+    return jsonschema.Draft202012Validator(schema)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "valid"),
+    [
+        ("/AT:P/", "/AT:N/", False),
+        ("/E:P", "/E:P/MAT:N", False),
+        ("/AT:P/", "/AT:N/", None),
+    ],
+    ids=["at-n", "mat-n-overrides-at-p", "mat-p-overrides-at-n"],
+)
+def test_input_schema_enforces_sr_at_rule_on_effective_at(old, new, valid):
     payload = scenario_payload("ASI04")
-    payload["cvss_vector"] = payload["cvss_vector"].replace("/AT:P/", "/AT:N/")
-    with pytest.raises(jsonschema.ValidationError, match="AT:P"):
+    payload["cvss_vector"] = payload["cvss_vector"].replace(old, new)
+    if valid is None:
+        payload["cvss_vector"] += "/MAT:P"
+        valid = True
+    assert _input_schema_validator().is_valid(payload) is valid
+    if valid:
         validate_assessment_input(payload)
+    else:
+        with pytest.raises(jsonschema.ValidationError):
+            validate_assessment_input(payload)
 
 
 def test_cli_rejects_partial_agentic_flags(capsys):

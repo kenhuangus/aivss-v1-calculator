@@ -35,6 +35,7 @@ from .macrovector import (
     ENV_REQUIREMENT_METRICS,
     MODIFIED_METRICS,
     THREAT_METRICS,
+    effective,
     macrovector,
     parse_cvss_vector,
 )
@@ -173,7 +174,7 @@ PROFILE_NOTE = (
 def profile_report(cvss_vector: str, profile: AIProfile) -> dict[str, Any]:
     """Score a CVSS v4.0 vector with its Agentic AI profile."""
     metrics = parse_cvss_vector(cvss_vector)
-    check_sr_at(profile.sr, metrics["AT"])
+    check_sr_at(profile.sr, effective(metrics, "AT"))
     score = score_cvss_bte(cvss_vector)
     effect = profile.agentic_effect_class()
     lookup = aivss_lookup(score, effect)
@@ -200,6 +201,18 @@ def profile_report(cvss_vector: str, profile: AIProfile) -> dict[str, Any]:
     }
 
 
+_LEGACY_KEYS = frozenset({"EX", "PT", "CA", "TD"})
+
+
+def _is_legacy_vector(aivss_vector: Any) -> bool:
+    """True for a draft eight-metric vector; rejects a non-string up front."""
+    if not isinstance(aivss_vector, str):
+        # ValueError, like parse_aivss_vector, so every caller's error path applies.
+        raise ValueError("AIVSS extension vector must be a string")  # noqa: TRY004
+    keys = {part.partition(":")[0] for part in aivss_vector.strip().split("/")[1:]}
+    return bool(keys & _LEGACY_KEYS)
+
+
 def profile_from_vectors(cvss_vector: str, aivss_vector: str) -> dict[str, Any]:
     """Score a CVSS vector paired with a separate AIVSS extension vector.
 
@@ -210,8 +223,7 @@ def profile_from_vectors(cvss_vector: str, aivss_vector: str) -> dict[str, Any]:
     if embedded is not None:
         raise ValueError("pass the AIVSS vector separately from the CVSS vector")
     migration = None
-    keys = {part.partition(":")[0] for part in aivss_vector.strip().split("/")[1:]}
-    if keys & {"EX", "PT", "CA", "TD"}:
+    if _is_legacy_vector(aivss_vector):
         migration = convert_legacy_vector(aivss_vector)
         aivss_vector = migration["aivss_vector"]
     report = profile_report(cvss_only, parse_aivss_vector(aivss_vector))
@@ -310,8 +322,7 @@ def _web_decision(request: dict[str, Any]) -> dict[str, Any]:
     evidence = request.get("evidence") or {}
     aivss_vector = request["aivss_vector"]
     untraceability = request.get("agent_untraceability")
-    keys = {part.partition(":")[0] for part in aivss_vector.strip().split("/")[1:]}
-    if keys & {"EX", "PT", "CA", "TD"}:
+    if _is_legacy_vector(aivss_vector):
         migration = convert_legacy_vector(aivss_vector)
         aivss_vector = migration["aivss_vector"]
         untraceability = untraceability or migration["agent_untraceability"]
@@ -342,8 +353,10 @@ def handle_web_request(request_json: str) -> str:
     """Single JSON-in/JSON-out entry point for the browser calculator.
 
     Request: {"op": "catalog"} or {"op": "calculate", "cvss_vector": ...,
-    "aivss_vector": ..., "decision": {...} | null}. Validation errors are
-    returned as {"ok": false, "error": message} rather than raised.
+    "aivss_vector": ..., "agent_untraceability": "High" | ... | null,
+    "decision": {...} | null}. A supplied untraceability value is echoed in
+    the result and recorded in the decision. Validation errors are returned
+    as {"ok": false, "error": message} rather than raised.
     """
     try:
         request = json.loads(request_json)
@@ -351,17 +364,30 @@ def handle_web_request(request_json: str) -> str:
         if op == "catalog":
             result: dict[str, Any] = calculator_catalog()
         elif op == "calculate":
+            untraceability = request.get("agent_untraceability")
+            if untraceability is not None and untraceability not in tuple(
+                UNTRACEABILITY_DEFINITIONS
+            ):
+                raise ValueError(
+                    "agent_untraceability must be High, Moderate, Low, X, or omitted"
+                )
             result = {
                 "profile": profile_from_vectors(
                     request["cvss_vector"], request["aivss_vector"]
                 )
             }
+            if untraceability is not None:
+                result["agent_untraceability"] = untraceability
             decision_request = request.get("decision")
             if decision_request is not None:
                 try:
                     result["decision"] = _web_decision(
                         {
                             **decision_request,
+                            "agent_untraceability": decision_request.get(
+                                "agent_untraceability"
+                            )
+                            or untraceability,
                             "cvss_vector": request["cvss_vector"],
                             "aivss_vector": request["aivss_vector"],
                         }

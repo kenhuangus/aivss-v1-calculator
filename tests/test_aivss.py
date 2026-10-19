@@ -1033,6 +1033,23 @@ class TestEndToEnd:
         assert report["agentic_ai_profile"]["agentic_effect_class"] == "A2"
         assert report["scores"]["agentic_uplift_u"] == 9
 
+    def test_sr_check_uses_effective_at_when_mat_is_present(self):
+        """MAT overrides AT, so MAT:P satisfies SR:P even with Base AT:N."""
+        report = self._assessment(
+            cvss_vector=f"{EXAMPLE_VECTOR}/MAT:P",
+            aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/SR:P/ES:W",
+        )
+        assert report["agentic_ai_profile"]["agentic_effect_class"] == "A2"
+        validate_report(report)
+
+    def test_sr_check_rejects_mat_n_override(self):
+        """MAT:N removes the attack requirement, so SR:P is inconsistent."""
+        with pytest.raises(ValueError, match="AT:P"):
+            self._assessment(
+                cvss_vector=EXAMPLE_VECTOR.replace("/AT:N/", "/AT:P/") + "/MAT:N",
+                aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/SR:P/ES:W",
+            )
+
     def test_missing_untraceability_is_rejected(self):
         with pytest.raises(ValueError, match="agent_untraceability"):
             self._assessment(agent_untraceability=None)

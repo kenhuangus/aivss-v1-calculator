@@ -30,7 +30,7 @@ from .decision import (
     bod_timeline,
     decide,
 )
-from .macrovector import macrovector, parse_cvss_vector
+from .macrovector import effective, macrovector, parse_cvss_vector
 from .exploit_maturity import apply_exploit_maturity
 from .priority import compute_priority
 from .taxonomy import ASI_TOP_10
@@ -74,7 +74,9 @@ def validate_assessment_input(payload: dict[str, Any]) -> None:
     profile = parse_aivss_vector(payload["aivss_vector"]) if has_profile else None
     if profile is not None:
         validate_metric_evidence(profile, payload["metric_evidence"])
-        check_sr_at(profile.sr, parse_cvss_vector(payload["cvss_vector"])["AT"])
+        check_sr_at(
+            profile.sr, effective(parse_cvss_vector(payload["cvss_vector"]), "AT")
+        )
     untraceability = validate_untraceability(payload["agent_untraceability"])
     Provenance(**payload["provenance"])
     evidence = ExploitationEvidence(**payload.get("evidence", {}))
@@ -157,7 +159,7 @@ def validate_report(report: dict[str, Any]) -> None:
             for name in AGENTIC_METRIC_ORDER
         },
     )
-    check_sr_at(profile.sr, parse_cvss_vector(cvss["vector"])["AT"])
+    check_sr_at(profile.sr, effective(parse_cvss_vector(cvss["vector"]), "AT"))
     if extension["complete"] != profile.complete:
         raise ValueError("profile complete flag does not match metric values")
     if extension["provisional"] != profile.provisional:

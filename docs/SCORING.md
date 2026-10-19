@@ -52,7 +52,8 @@ vector.
 
 SR must agree with CVSS Attack Requirements: `SR:P` or `SR:U` requires `AT:P`,
 because FIRST's AT:P covers attacks that may need to be launched several times
-against one target. The calculator rejects a vector pair that breaks this rule.
+against one target. The check uses the effective value, so `MAT` overrides `AT`
+when it is set. The calculator rejects a vector pair that breaks this rule.
 
 ## Agentic Effect Class (ordered rule ladder)
 

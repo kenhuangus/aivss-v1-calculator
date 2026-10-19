@@ -242,6 +242,60 @@ def test_web_converts_legacy_vector_and_reports_migration():
     assert decision["decision_points"]["agent_untraceability"] == "High"
 
 
+def test_web_echoes_untraceability_without_a_decision():
+    scenario = SCENARIOS[0]
+    response = _call(
+        {
+            "op": "calculate",
+            "cvss_vector": scenario["cvss_vector"],
+            "aivss_vector": scenario["aivss_vector"],
+            "agent_untraceability": "Low",
+            "decision": None,
+        }
+    )
+    assert response["ok"], response
+    assert response["result"]["agent_untraceability"] == "Low"
+    assert "decision" not in response["result"]
+
+
+def test_web_records_top_level_untraceability_in_decision():
+    scenario = SCENARIOS[0]
+    decision = _decision_request(scenario)
+    del decision["agent_untraceability"]
+    response = _call(
+        {
+            "op": "calculate",
+            "cvss_vector": scenario["cvss_vector"],
+            "aivss_vector": scenario["aivss_vector"],
+            "agent_untraceability": "Moderate",
+            "decision": decision,
+        }
+    )
+    points = response["result"]["decision"]["decision_points"]
+    assert points["agent_untraceability"] == "Moderate"
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("aivss_vector", None, "must be a string"),
+        ("aivss_vector", 7, "must be a string"),
+        ("agent_untraceability", "H", "agent_untraceability must be"),
+    ],
+)
+def test_web_rejects_malformed_fields_with_an_error_response(field, value, message):
+    scenario = SCENARIOS[0]
+    request = {
+        "op": "calculate",
+        "cvss_vector": scenario["cvss_vector"],
+        "aivss_vector": scenario["aivss_vector"],
+    }
+    request[field] = value
+    response = _call(request)
+    assert response["ok"] is False
+    assert message in response["error"]
+
+
 def test_web_rejects_sr_probabilistic_without_at_p():
     response = _call(
         {

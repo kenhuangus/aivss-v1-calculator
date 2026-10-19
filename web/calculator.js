@@ -437,7 +437,6 @@
       publicly_exposed_source: d.source.trim() || null,
       decision_data_observed_at: new Date().toISOString().replace(/\.\d+Z$/, "Z"),
       evidence: { poc: d.evidence === "poc", observed_local: d.evidence === "observed_local" },
-      agent_untraceability: state.untraceability,
     };
     if (hasCve) {
       request.cve_id = d.cve.trim();
@@ -476,6 +475,7 @@
       result = await window.AivssEngine.calculate({
         cvss_vector: cvssVector(),
         aivss_vector: aivssVector(),
+        agent_untraceability: state.untraceability,
         decision: decisionRequest(),
       });
     } catch (err) {

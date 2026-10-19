@@ -24,7 +24,7 @@ from .cvss_score import score_cvss_bte
 from .lookup import AIVSS_BASIS, aivss_lookup, cvss_nomenclature
 from .decision import ExploitationEvidence, decide
 from .exploit_maturity import apply_exploit_maturity, resolve_exploit_maturity
-from .macrovector import macrovector, parse_cvss_vector
+from .macrovector import effective, macrovector, parse_cvss_vector
 from .priority import compute_priority
 from .taxonomy import normalize_risk_category
 from .versions import (
@@ -272,8 +272,8 @@ def assess(a: Assessment) -> dict[str, Any]:
     metrics = parse_cvss_vector(resolved_vector)
     mv = macrovector(metrics)
     cvss_bte = score_cvss_bte(resolved_vector)
-    # SR refines AT and must agree with it (Section 4.3).
-    check_sr_at(profile.sr, metrics["AT"])
+    # SR refines AT and must agree with the effective AT (Section 4.3).
+    check_sr_at(profile.sr, effective(metrics, "AT"))
 
     # (2)-(4) Effect Class by the ordered ladder, then the lookup tables.
     ai_class = profile.effect_class()

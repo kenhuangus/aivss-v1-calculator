@@ -549,11 +549,13 @@ def check_sr_at(sr: str, at: str) -> None:
 
     FIRST defines AT:P to include attacks that may need to be launched
     multiple times against a single target, so SR:P or SR:U requires AT:P.
+    Pass the effective value: MAT overrides AT when it is set.
     """
     if sr in ("P", "U") and at != "P":
         raise ValueError(
-            f"SR:{sr} requires CVSS AT:P: an exploit that needs repeated attempts "
-            "meets FIRST's Attack Requirements Present definition"
+            f"SR:{sr} requires CVSS AT:P (or MAT:P when MAT is set): an exploit "
+            "that needs repeated attempts meets FIRST's Attack Requirements "
+            "Present definition"
         )
 
 

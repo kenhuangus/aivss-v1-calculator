@@ -147,7 +147,17 @@
         "properties": {"aivss_vector": {"pattern": "/SR:(P|U)/"}}
       },
       "then": {
-        "properties": {"cvss_vector": {"pattern": "/AT:P(/|$)"}}
+        "properties": {
+          "cvss_vector": {
+            "$comment": "SR:P or SR:U requires effective AT:P: MAT:P, or AT:P without MAT:N.",
+            "anyOf": [
+              {"pattern": "/MAT:P(/|$)"},
+              {
+                "allOf": [{"pattern": "/AT:P(/|$)"}, {"not": {"pattern": "/MAT:N(/|$)"}}]
+              }
+            ]
+          }
+        }
       }
     },
     {

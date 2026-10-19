@@ -137,12 +137,17 @@ A stable release may not label a numeric output normative until all gates pass:
 The package, report, rubric, and extension-vector versions are separate fields
 with one source of truth in `aivss_calc/versions.py`.
 
-While the specification status is `candidate`, the extension vector prefix
-stays `AIVSS:1.0` as the published specification requires. Calculator and
-rubric 1.1.0 align the draft implementation with the condensed AIVSS 1.0
+Candidate-period exception: while the specification status is `candidate`,
+changes that bring the implementation into line with the published
+specification text are released as minor versions, even when the rules above
+would call them major. The published specification fixes the extension vector
+prefix at `AIVSS:1.0`, so a major calculator version would advertise a break
+that the vector itself cannot show. Under this exception, calculator and rubric
+1.1.0 align the draft implementation with the condensed AIVSS 1.0
 specification: they replace the draft eight-metric vector with the five-metric
 form and add the Table 5 and Table 6 lookups. Draft vectors are converted with
-`aivss-calc migrate-vector`.
+`aivss-calc migrate-vector`. The major-version rules apply in full once the
+specification leaves candidate status.
 
 ## Reproducibility checklist
 
