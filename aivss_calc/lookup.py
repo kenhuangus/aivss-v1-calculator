@@ -1,4 +1,4 @@
-"""Lookup Table AIVSS (condensed specification, Section 5.8, Table 6).
+"""Lookup Table AIVSS (AIVSS 1.0 specification, Section 5.8, Table 6).
 
 AIVSS is read from a published table keyed by the FIRST qualitative band of
 CVSS-BTE and the Agentic Effect Class. No arithmetic is performed:
