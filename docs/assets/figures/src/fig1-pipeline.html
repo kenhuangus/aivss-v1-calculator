@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<style>
+.grid{display:grid;grid-template-columns:452px 206px;column-gap:50px;padding-left:4px}
+.main{display:flex;flex-direction:column;gap:30px;padding-left:34px}
+.side{display:flex;flex-direction:column;justify-content:flex-start;padding-top:222px}
+.foot{margin-top:24px}
+.pub{font-weight:600;color:var(--g-tt)}
+</style></head><body><div id="fig">
+<h1>AIVSS scoring pipeline: lookup tables only</h1>
+<div class="grid">
+ <div class="main">
+  <div class="box blue" id="b1"><div class="t">1. Score CVSS v4.0</div><div class="d">Official FIRST algorithm, unchanged. Output: CVSS-BTE and its FIRST band (Low, Medium, High, Critical).</div></div>
+  <div class="box amber" id="b2"><div class="t">2. Assign agentic categories</div><div class="d">LC, CP, AP, SR, ES as labels only. Use X when evidence is missing. SR must agree with AT.</div></div>
+  <div class="box amber" id="b3"><div class="t">3. Effect Class by ordered ladder</div><div class="d">Test A2, then A1, then AX, then A0; the first match wins. Provisional when any of LC, CP, AP or SR is X.</div></div>
+  <div class="box green" id="b4"><div class="t">4. Lookup Table AIVSS (Table 6)</div><div class="d">A0 or AX: AIVSS equals CVSS-BTE. A1 or A2: the higher of the cell value and CVSS-BTE.</div></div>
+  <div class="box green" id="b5"><div class="t">5. Publish</div><div class="d pub">CVSS-BTE · Effect Class · U · AIVSS · provisional flag</div></div>
+ </div>
+ <div class="side">
+  <div class="box note" id="s1"><div class="t">Lookup Table U</div><div class="d">Table 5. Effect Class, SR and ES give U from 0 to 10. Informative only: no decision uses U.</div></div>
+ </div>
+</div>
+<div class="box solid-note foot" id="f1"><div class="d" style="text-align:center;color:#374151"><b>No arithmetic on ordinal labels:</b> no sums, products, averages or CVSS-plus-uplift formulas.</div></div>
+</div>
+<script>
+window.WIRES=[
+ ['b1','bottom','b2','top'],['b2','bottom','b3','top'],['b3','bottom','b4','top'],['b4','bottom','b5','top'],
+ ['b1','left','b4','left',{mid:40,label:'CVSS-BTE and band',rot:true}],
+ ['b3','right','s1','left',{dash:true,straight:true}],
+ ['b2','right','s1','top',{dash:true,label:'ES',at:'start'}],
+ ['s1','bottom','b5','right',{dash:true,label:'reported',at:'below'}]
+];
+</script><script src="_wires.js"></script></body></html>

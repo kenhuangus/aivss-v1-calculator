@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<style>
+.track{border:1.5px solid #e5e7eb;border-radius:12px;padding:14px 14px 16px;margin-bottom:16px;position:relative}
+.track>.h{font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#6b7280;margin-bottom:10px}
+.row{display:grid;grid-template-columns:220px 196px 196px;column-gap:28px;align-items:stretch}
+.box{padding:9px 12px}
+.box .t{font-size:14.5px}
+.box .d{font-size:12.8px}
+ol{margin:2px 0 0 18px;font-size:12.8px;color:var(--muted)}
+.sub{margin-top:14px;display:grid;grid-template-columns:220px 420px;column-gap:28px}
+.foot{text-align:center;font-size:13px;color:#374151;margin-top:4px}
+</style></head><body><div id="fig">
+<h1>Exploitation evidence, severity and remediation timeline</h1>
+<div class="track"><div class="h">Severity</div>
+ <div class="row">
+  <div class="box blue" id="ev"><div class="t">Evidence ladder (sets E)</div><ol><li>CISA KEV → E:A</li><li>Vulnrichment active, or observed → E:A</li><li>Public PoC → E:P</li><li>No evidence → E:U</li></ol></div>
+  <div class="box blue" id="cv"><div class="t">CVSS v4.0</div><div class="d">Vector with E, scored by the FIRST algorithm → CVSS-BTE</div></div>
+  <div class="box green" id="lk"><div class="t">Lookup Table AIVSS</div><div class="d">CVSS-BTE band and Effect Class → AIVSS (never lower than CVSS-BTE)</div></div>
+ </div>
+ <div class="box note" id="epss" style="margin-top:12px;padding:7px 12px"><div class="d" style="text-align:center"><b style="color:#374151">EPSS</b> is dated metadata only. It never sets E, U or AIVSS.</div></div>
+</div>
+<div class="track"><div class="h">Remediation timeline (Conformance Level 2)</div>
+ <div class="row">
+  <div class="box red" id="in"><div class="t">BOD 26-04 inputs</div><ol><li>In KEV</li><li>Publicly exposed</li><li>Automatable</li><li>Technical impact</li></ol></div>
+  <div class="box red" id="dt"><div class="t">CISA decision table</div><div class="d mono" style="font-size:11.5px">cisa:DT_BOD2604:1.0.0</div><div class="d">Non-KEV CVE with no CISA values: Automatable no, Technical Impact total</div></div>
+  <div class="box red" id="bl"><div class="t">BOD baseline</div><div class="d">Fix on System Upgrade, 60 days, 14 days, 3 days, or 3 days with forensic triage</div></div>
+ </div>
+ <div class="row" style="margin-top:22px">
+  <div class="box amber" id="ec"><div class="t">Effect Class A2</div><div class="d">From the ladder in Section 5.6</div></div>
+  <div class="box amber" id="ov"><div class="t">AIVSS overlay</div><div class="d">Advance one tier. Never creates 3DF; never shortens it.</div></div>
+  <div class="box green" id="rec"><div class="t">AIVSS recommendation</div><div class="d">Reported beside the unmodified BOD baseline</div></div>
+ </div>
+</div>
+<div class="foot">Severity scores do not feed the BOD decision table. For FCEB agencies in scope, the BOD baseline is the obligation.</div>
+</div>
+<script>
+window.WIRES=[
+ ['ev','right','cv','left',{straight:true}],['cv','right','lk','left',{straight:true}],
+ ['in','right','dt','left',{straight:true}],['dt','right','bl','left',{straight:true}],
+ ['ec','right','ov','left',{straight:true}],['ov','right','rec','left',{straight:true}],
+ ['bl','bottom','ov','top',{mid:undefined}],
+];
+</script><script src="_wires.js"></script></body></html>
