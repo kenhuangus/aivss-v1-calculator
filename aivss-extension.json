@@ -3,7 +3,7 @@
   "identifier": "AIVSS",
   "version": "1.0",
   "description": "Five-metric Agentic AI exploit-path profile (LC, CP, AP, RH, ES) listed as a separate extension vector beside an unchanged CVSS v4.0 assessment, per the FIRST CVSS v4.0 Extensions Framework.",
-  "authoritative_url": "https://github.com/kenhuangus/aivss-v1-candidate",
+  "authoritative_url": "https://github.com/kenhuangus/aivss-v1-calculator",
   "vector_prefix": "AIVSS:1.0",
   "metric_order": ["LC", "CP", "AP", "RH", "ES"],
   "classifying_metrics": ["LC", "CP", "AP", "RH"],

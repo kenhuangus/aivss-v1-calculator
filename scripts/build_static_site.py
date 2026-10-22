@@ -10,7 +10,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = REPO_ROOT / "web"
 DEFAULT_OUT = REPO_ROOT / "_site"
-DEFAULT_BASE = "/aivss-v1-candidate/"
+DEFAULT_BASE = "/aivss-v1-calculator/"
 
 
 def build(out_dir: Path, base_href: str = DEFAULT_BASE) -> None:

@@ -31,7 +31,7 @@ jobs:
         run: pip install -e .
 
       - name: Build static demo site
-        run: python scripts/build_static_site.py _site /aivss-v1-candidate/
+        run: python scripts/build_static_site.py _site /aivss-v1-calculator/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
