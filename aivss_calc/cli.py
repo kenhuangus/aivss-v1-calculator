@@ -124,7 +124,6 @@ def cmd_decide(args: argparse.Namespace) -> int:
             evidence=_evidence_from_args(args),
             vector=args.vector,
             agentic_effect_class=args.agentic_effect_class,
-            agent_untraceability=args.agent_untraceability,
             publicly_exposed=args.publicly_exposed,
             publicly_exposed_source=args.publicly_exposed_source,
             decision_data_observed_at=args.decision_data_observed_at,
@@ -267,12 +266,6 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("A0", "A1", "A2", "AX"),
         dest="agentic_effect_class",
     )
-    p.add_argument(
-        "--agent-untraceability",
-        choices=("High", "Moderate", "Low", "X"),
-        dest="agent_untraceability",
-        help="Agent untraceability metadata; recorded, never changes the timeline",
-    )
     p.add_argument("--publicly-exposed", type=_parse_optional_bool)
     p.add_argument("--publicly-exposed-source")
     p.add_argument("--decision-data-observed-at")
@@ -313,7 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser(
         "migrate-vector",
-        help="Convert a draft eight-metric AIVSS vector (EX/PT/CA/TD) to LC/CP/AP/RH/ES",
+        help="Convert a draft eight-metric AIVSS vector (EX/PT/CA/TD; SR, PT, CA and TD are dropped) to LC/CP/AP/RH/ES",
     )
     p.add_argument("vector")
     p.set_defaults(func=cmd_migrate_vector)

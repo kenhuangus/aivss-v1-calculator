@@ -39,7 +39,6 @@ from aivss_calc.versions import (
 REPO = pathlib.Path(__file__).resolve().parents[1]
 CVSS = "CVSS:4.0/AV:N/AC:H/AT:N/PR:N/UI:N/VC:H/VI:L/VA:L/SC:H/SI:N/SA:N/E:P"
 EVIDENCE = scenario_payload("ASI06")["metric_evidence"]
-UNTRACEABILITY = scenario_payload("ASI06")["agent_untraceability"]
 
 
 def test_versions_are_consistent_across_package_and_schemas():
@@ -128,7 +127,6 @@ def test_unknown_classifying_metric_yields_ax():
                 scenario_payload("ASI06")["agentic_applicability"]
             ),
             metric_evidence=copy.deepcopy(EVIDENCE),
-            agent_untraceability=copy.deepcopy(UNTRACEABILITY),
             publicly_exposed=True,
             automatable=True,
             technical_impact="total",
@@ -157,14 +155,6 @@ def test_semantic_validator_rejects_tampered_score():
         validate_report(tampered)
 
 
-def test_semantic_validator_rejects_tampered_untraceability():
-    report = assess(assessment_from_payload(scenario_payload("ASI01")))
-    tampered = copy.deepcopy(report)
-    tampered["agent_untraceability"]["value"] = "Low"
-    with pytest.raises(ValueError, match="untraceability"):
-        validate_report(tampered)
-
-
 def test_input_schema_rejects_missing_evidence_and_extra_fields():
     payload = scenario_payload("ASI01")
     del payload["metric_evidence"]["ES"]
@@ -189,7 +179,7 @@ def test_input_without_decision_omits_decision_only_inputs():
 
 def test_input_semantics_reject_whitespace_only_evidence():
     payload = scenario_payload("ASI01")
-    payload["agent_untraceability"]["rationale"] = "  "
+    payload["metric_evidence"]["ES"]["rationale"] = "  "
     with pytest.raises(ValueError, match="rationale"):
         validate_assessment_input(payload)
 
@@ -202,13 +192,6 @@ def test_report_validator_rejects_fields_from_another_decision_branch():
     report["decision"]["bod_2604_label"] = report["decision"]["bod_2604_analogy_label"]
     with pytest.raises(Exception):
         validate_report(report)
-
-
-def test_input_rejects_missing_untraceability():
-    payload = scenario_payload("ASI01")
-    del payload["agent_untraceability"]
-    with pytest.raises(jsonschema.ValidationError, match="agent_untraceability"):
-        validate_assessment_input(payload)
 
 
 def _input_schema_validator():
@@ -276,7 +259,7 @@ def test_cli_migrate_vector(capsys):
     assert main(["migrate-vector", legacy]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["aivss_vector"] == "AIVSS:1.0/LC:D/CP:C/AP:L/RH:X/ES:W"
-    assert output["agent_untraceability"] == "High"
+    assert output["dropped"] == {"SR": "R", "PT": "H", "CA": "M", "TD": "H"}
 
 
 def test_cli_profile_rejects_legacy_vector(capsys):

@@ -64,7 +64,6 @@ def test_demo_top10_api():
         assert rows[0]["asi"] == "ASI01"
         assert rows[0]["aivss"] == 9.7
         assert rows[0]["cvss_bte"] == 9.2
-        assert rows[0]["agent_untraceability"] in ("High", "Moderate", "Low", "X")
         assert "escalated" in rows[0]
         # ASI01 is A1 here, so the A2-only overlay does not trigger.
         assert rows[0]["overlay_triggered"] is False

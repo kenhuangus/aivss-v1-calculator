@@ -229,7 +229,6 @@ def decide(
     publicly_exposed_source: str,
     decision_data_observed_at: str,
     agentic_effect_class: str = "A0",
-    agent_untraceability: str | None = None,
     automatable: bool | None = None,
     technical_impact: str | None = None,
     cve_id: str | None = None,
@@ -314,8 +313,6 @@ def decide(
         )
     if agentic_effect_class not in ("A0", "A1", "A2", "AX"):
         raise ValueError("agentic_effect_class must be A0, A1, A2, or AX")
-    if agent_untraceability not in ("High", "Moderate", "Low", "X", None):
-        raise ValueError("agent_untraceability must be High, Moderate, Low, X, or omitted")
     if (
         automatable is not None
         and vulnrichment_automatable is not None
@@ -395,8 +392,7 @@ def decide(
     )
     # AIVSS overlay (organizational, categorical): Effect Class A2 advances the
     # recommendation one tier; it never creates or shortens 3DF. An AX class
-    # cannot trigger it and marks the recommendation provisional. Agent
-    # untraceability is recorded only; it never changes a timeline.
+    # cannot trigger it and marks the recommendation provisional.
     overlay_triggered = agentic_effect_class == "A2"
     recommended = advance_timeline(base, 1 if overlay_triggered else 0)
     overlay_status = (
@@ -424,8 +420,7 @@ def decide(
             "decision_point_namespaces": dict(SSVC_DECISION_POINTS),
             "extension_note": (
                 "Agentic AI Effect Class is a transparent fifth SSVC extension "
-                "input; agent untraceability is recorded but does not modify the "
-                "BOD outcome."
+                "input."
             ),
         },
         "bod_2604_model_version": BOD_2604_MODEL_VERSION,
@@ -444,7 +439,6 @@ def decide(
             "technical_impact": technical_impact,
             "technical_impact_source": impact_source,
             "agentic_effect_class": agentic_effect_class,
-            "agent_untraceability": agent_untraceability,
         },
         "aivss_recommended_timeline": recommended,
         "aivss_recommended_label": TIMELINE_LABELS[recommended],

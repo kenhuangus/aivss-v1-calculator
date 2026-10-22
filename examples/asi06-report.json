@@ -103,22 +103,6 @@
     "agentic_effect_class_min": "A2",
     "agentic_effect_class_max": "A2"
   },
-  "agent_untraceability": {
-    "value": "High",
-    "definition": "A retrieval exercise cannot reconstruct the ordered security-relevant actions on the path or cannot bound the affected principals.",
-    "evidence": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI06-001: A retrieval test cannot reconstruct ordered actions or bound affected principals.",
-      "evidence_refs": [
-        "fixture://AIVSS-ASI06-001/untraceability"
-      ],
-      "retrieval_tested": true,
-      "ordered_actions_reconstructable": false,
-      "affected_principals_bounded": false,
-      "required_fields_complete": false,
-      "integrity_protected": false,
-      "retention_verified": false
-    }
-  },
   "scores": {
     "cvss_score": 7.8,
     "cvss_bte": 7.8,
@@ -169,7 +153,7 @@
         "technical_impact": "ssvc:TI:1.0.0",
         "agentic_ai_effect_class": "aivss:effect_class:1.0.0"
       },
-      "extension_note": "Agentic AI Effect Class is a transparent fifth SSVC extension input; agent untraceability is recorded but does not modify the BOD outcome."
+      "extension_note": "Agentic AI Effect Class is a transparent fifth SSVC extension input."
     },
     "bod_2604_model_version": "cisa:BOD2604:1.0.0",
     "bod_2604_decision_table": "cisa:DT_BOD2604:1.0.0",
@@ -186,8 +170,7 @@
       "automatable_source": "supplied",
       "technical_impact": "total",
       "technical_impact_source": "supplied",
-      "agentic_effect_class": "A2",
-      "agent_untraceability": "High"
+      "agentic_effect_class": "A2"
     },
     "aivss_recommended_timeline": "3D",
     "aivss_recommended_label": "Remediate within 3 days",

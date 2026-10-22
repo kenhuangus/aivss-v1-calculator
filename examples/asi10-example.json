@@ -11,18 +11,6 @@
   "evidence": {
     "observed_local": true
   },
-  "agent_untraceability": {
-    "rationale": "Synthetic reference fact for AIVSS-ASI10-001: A retrieval test cannot reconstruct ordered actions or bound affected principals.",
-    "evidence_refs": [
-      "fixture://AIVSS-ASI10-001/untraceability"
-    ],
-    "retrieval_tested": true,
-    "ordered_actions_reconstructable": false,
-    "affected_principals_bounded": false,
-    "required_fields_complete": false,
-    "integrity_protected": false,
-    "retention_verified": false
-  },
   "path_id": "AIVSS-ASI10-001-PATH-1",
   "agentic_applicability": {
     "model_directed_goal_pursuit": true,

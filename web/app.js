@@ -83,7 +83,7 @@ function card(row) {
       node("div", { class: "bar" }, bar),
       node("div", {
         class: "score-sub",
-        text: `${row.cvss_nomenclature} ${formatScore(row.cvss_bte)} · U ${row.agentic_uplift_u ?? "—"} · untraceability ${row.agent_untraceability}`,
+        text: `${row.cvss_nomenclature} ${formatScore(row.cvss_bte)} · U ${row.agentic_uplift_u ?? "—"}`,
       }),
     ),
     node(
@@ -174,7 +174,6 @@ async function showDetail(asi) {
     meta(report.scores.cvss_nomenclature, formatScore(report.scores.cvss_bte)),
     meta("Effect class", report.scores.agentic_effect_class ?? "—"),
     meta("U", String(report.scores.agentic_uplift_u ?? "—")),
-    meta("Untraceability", report.agent_untraceability?.value ?? "—"),
     meta("BOD analogy", bodLabel),
     decision.escalated && decision.aivss_recommended_label
       ? meta("Overlay", decision.aivss_recommended_label)

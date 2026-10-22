@@ -16,7 +16,6 @@
     "agentic_applicability",
     "cvss",
     "agentic_ai_profile",
-    "agent_untraceability",
     "scores",
     "provenance"
   ],
@@ -34,7 +33,6 @@
     "agentic_applicability": {"$ref": "#/$defs/agenticApplicability"},
     "cvss": {"$ref": "#/$defs/cvss"},
     "agentic_ai_profile": {"$ref": "#/$defs/agenticProfile"},
-    "agent_untraceability": {"$ref": "#/$defs/agentUntraceability"},
     "scores": {"$ref": "#/$defs/scores"},
     "provenance": {"$ref": "#/$defs/provenance"},
     "decision": {"$ref": "#/$defs/decision"},
@@ -247,43 +245,6 @@
         }
       }
     },
-    "agentUntraceability": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["value", "definition", "evidence"],
-      "properties": {
-        "value": {"enum": ["High", "Moderate", "Low", "X"]},
-        "definition": {"type": "string", "minLength": 1},
-        "evidence": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "rationale",
-            "evidence_refs",
-            "retrieval_tested",
-            "ordered_actions_reconstructable",
-            "affected_principals_bounded",
-            "required_fields_complete",
-            "integrity_protected",
-            "retention_verified"
-          ],
-          "properties": {
-            "rationale": {"type": "string", "minLength": 1},
-            "evidence_refs": {
-              "type": "array",
-              "minItems": 1,
-              "items": {"type": "string", "minLength": 1}
-            },
-            "retrieval_tested": {"type": ["boolean", "null"]},
-            "ordered_actions_reconstructable": {"type": ["boolean", "null"]},
-            "affected_principals_bounded": {"type": ["boolean", "null"]},
-            "required_fields_complete": {"type": ["boolean", "null"]},
-            "integrity_protected": {"type": ["boolean", "null"]},
-            "retention_verified": {"type": ["boolean", "null"]}
-          }
-        }
-      }
-    },
     "scores": {
       "type": "object",
       "additionalProperties": false,
@@ -370,8 +331,7 @@
         "automatable_source",
         "technical_impact",
         "technical_impact_source",
-        "agentic_effect_class",
-        "agent_untraceability"
+        "agentic_effect_class"
       ],
       "properties": {
         "in_kev": {"type": "boolean"},
@@ -399,8 +359,7 @@
             "CISA BOD 26-04 FAQ (missing metadata)"
           ]
         },
-        "agentic_effect_class": {"enum": ["A0", "A1", "A2", "AX"]},
-        "agent_untraceability": {"enum": ["High", "Moderate", "Low", "X", null]}
+        "agentic_effect_class": {"enum": ["A0", "A1", "A2", "AX"]}
       }
     },
     "exploitation": {

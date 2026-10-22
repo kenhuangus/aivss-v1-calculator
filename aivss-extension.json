@@ -8,7 +8,6 @@
   "metric_order": ["LC", "CP", "AP", "RH", "ES"],
   "classifying_metrics": ["LC", "CP", "AP", "RH"],
   "uplift_metrics": ["ES"],
-  "report_metadata": ["agent_untraceability"],
   "input_schema": "schemas/aivss-assessment-input-v1.0.json",
   "report_schema": "schemas/aivss-report-v1.0.json",
   "first_validation_status": "not-submitted",

@@ -17,7 +17,6 @@ from .ai_metrics import (
     AGENTIC_METRICS,
     CLASSIFYING_AGENTIC_METRICS,
     EFFECT_CLASS_STATUS,
-    UNTRACEABILITY_DEFINITIONS,
     UPLIFT_AGENTIC_METRICS,
     UPLIFT_TABLE,
     AIProfile,
@@ -91,16 +90,6 @@ DECISION_INPUT_INFO: dict[str, dict[str, Any]] = {
                 "Your organisation observed and documented exploitation. Suitable for "
                 "non-CVE agentic findings; not CISA-verified."
             ),
-        },
-    },
-    "agent_untraceability": {
-        "summary": (
-            "Agent untraceability from a documented retrieval exercise on the "
-            "deployment. Mandatory report metadata; it does not change the AIVSS "
-            "score or the timeline."
-        ),
-        "values": {
-            label: definition for label, definition in UNTRACEABILITY_DEFINITIONS.items()
         },
     },
     "cve_id": {
@@ -268,7 +257,6 @@ def rubric() -> dict[str, Any]:
         "classifying_metrics": list(CLASSIFYING_AGENTIC_METRICS),
         "uplift_metrics": list(UPLIFT_AGENTIC_METRICS),
         "metrics": metrics,
-        "agent_untraceability": dict(UNTRACEABILITY_DEFINITIONS),
         "lookup_table_u": {key: dict(row) for key, row in UPLIFT_TABLE.items()},
         "lookup_table_aivss": {band: dict(row) for band, row in TABLE_6.items()},
     }
@@ -309,7 +297,6 @@ def calculator_catalog() -> dict[str, Any]:
                 "summary": s["summary"],
                 "cvss_vector": s["cvss_vector"],
                 "aivss_vector": s["aivss_vector"],
-                "agent_untraceability": s["agent_untraceability"],
                 "publicly_exposed": s["publicly_exposed"],
                 "automatable": s["automatable"],
                 "technical_impact": s["technical_impact"],
@@ -323,11 +310,9 @@ def calculator_catalog() -> dict[str, Any]:
 def _web_decision(request: dict[str, Any]) -> dict[str, Any]:
     evidence = request.get("evidence") or {}
     aivss_vector = request["aivss_vector"]
-    untraceability = request.get("agent_untraceability")
     if _is_legacy_vector(aivss_vector):
         migration = convert_legacy_vector(aivss_vector)
         aivss_vector = migration["aivss_vector"]
-        untraceability = untraceability or migration["agent_untraceability"]
     return decision_report(
         evidence=ExploitationEvidence(
             cisa_kev=evidence.get("cisa_kev"),
@@ -338,7 +323,6 @@ def _web_decision(request: dict[str, Any]) -> dict[str, Any]:
             poc=evidence.get("poc", False),
         ),
         vector=f"{request['cvss_vector']} {aivss_vector}",
-        agent_untraceability=untraceability,
         publicly_exposed=request.get("publicly_exposed"),
         publicly_exposed_source=request.get("publicly_exposed_source"),
         decision_data_observed_at=request.get("decision_data_observed_at"),
@@ -355,10 +339,9 @@ def handle_web_request(request_json: str) -> str:
     """Single JSON-in/JSON-out entry point for the browser calculator.
 
     Request: {"op": "catalog"} or {"op": "calculate", "cvss_vector": ...,
-    "aivss_vector": ..., "agent_untraceability": "High" | ... | null,
+    "aivss_vector": ...,
     "migrated_from": <draft eight-metric vector> | null,
-    "decision": {...} | null}. A supplied untraceability value is echoed in
-    the result and recorded in the decision. ``migrated_from`` lets a client
+    "decision": {...} | null}. ``migrated_from`` lets a client
     that converted a draft vector itself still receive the migration report,
     which is attached when the conversion matches the scored vector. Validation errors are returned
     as {"ok": false, "error": message} rather than raised.
@@ -369,13 +352,6 @@ def handle_web_request(request_json: str) -> str:
         if op == "catalog":
             result: dict[str, Any] = calculator_catalog()
         elif op == "calculate":
-            untraceability = request.get("agent_untraceability")
-            if untraceability is not None and untraceability not in tuple(
-                UNTRACEABILITY_DEFINITIONS
-            ):
-                raise ValueError(
-                    "agent_untraceability must be High, Moderate, Low, X, or omitted"
-                )
             result = {
                 "profile": profile_from_vectors(
                     request["cvss_vector"], request["aivss_vector"]
@@ -390,18 +366,12 @@ def handle_web_request(request_json: str) -> str:
                 migration = convert_legacy_vector(migrated_from)
                 if migration["aivss_vector"] == result["profile"]["aivss_vector"]:
                     result["profile"]["migration"] = migration
-            if untraceability is not None:
-                result["agent_untraceability"] = untraceability
             decision_request = request.get("decision")
             if decision_request is not None:
                 try:
                     result["decision"] = _web_decision(
                         {
                             **decision_request,
-                            "agent_untraceability": decision_request.get(
-                                "agent_untraceability"
-                            )
-                            or untraceability,
                             "cvss_vector": request["cvss_vector"],
                             "aivss_vector": request["aivss_vector"],
                         }

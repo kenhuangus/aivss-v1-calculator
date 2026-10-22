@@ -13,10 +13,8 @@ from .ai_metrics import (
     AGENTIC_EFFECT_CLASS_LABELS,
     AGENTIC_METRIC_ORDER,
     AGENTIC_METRICS,
-    UNTRACEABILITY_DEFINITIONS,
     parse_aivss_vector,
     validate_metric_evidence,
-    validate_untraceability,
 )
 from .assessment import UNKNOWN_EXPOSURE_SOURCE, Provenance
 from .lookup import AIVSS_BASIS, aivss_lookup, cvss_nomenclature
@@ -73,7 +71,6 @@ def validate_assessment_input(payload: dict[str, Any]) -> None:
     profile = parse_aivss_vector(payload["aivss_vector"]) if has_profile else None
     if profile is not None:
         validate_metric_evidence(profile, payload["metric_evidence"])
-    untraceability = validate_untraceability(payload["agent_untraceability"])
     Provenance(**payload["provenance"])
     evidence = ExploitationEvidence(**payload.get("evidence", {}))
     if payload.get("include_decision", True):
@@ -90,7 +87,6 @@ def validate_assessment_input(payload: dict[str, Any]) -> None:
             agentic_effect_class=(
                 profile.effect_class() if profile is not None else "AX"
             ),
-            agent_untraceability=untraceability,
             automatable=payload.get("automatable"),
             technical_impact=payload.get("technical_impact"),
             cve_id=payload.get("cve_id"),
@@ -167,12 +163,6 @@ def validate_report(report: dict[str, Any]) -> None:
         raise ValueError("effect class range does not match the AIVSS vector")
     if extension["agentic_uplift_u"] != profile.agentic_uplift_u():
         raise ValueError("agentic_uplift_u does not match Lookup Table U")
-    untraceability_record = report["agent_untraceability"]
-    untraceability = validate_untraceability(untraceability_record["evidence"])
-    if untraceability_record["value"] != untraceability:
-        raise ValueError("agent_untraceability does not match its observations")
-    if untraceability_record["definition"] != UNTRACEABILITY_DEFINITIONS[untraceability]:
-        raise ValueError("agent_untraceability definition does not match its value")
     if extension["agentic_effect_class"] != profile.effect_class():
         raise ValueError("agentic_effect_class does not match the AIVSS vector")
     if (
@@ -279,8 +269,6 @@ def validate_report(report: dict[str, Any]) -> None:
         expected_class = profile.effect_class() if profile is not None else "AX"
         if points["agentic_effect_class"] != expected_class:
             raise ValueError("decision class does not match the AIVSS profile")
-        if points["agent_untraceability"] != untraceability:
-            raise ValueError("decision agent_untraceability does not match the report")
         if faq_applied and (points["automatable"], points["technical_impact"]) != (
             False,
             "total",

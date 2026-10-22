@@ -78,7 +78,6 @@ def test_presets_match_python(browser, base_url):
         )
         assert page.text_content("#result-class") == row["agentic_effect_class"]
         assert page.text_content("#result-u") == str(row["agentic_uplift_u"])
-        assert page.text_content("#result-untraceability") == row["agent_untraceability"]
         keys = page.eval_on_selector_all(
             "#decision-result .timeline-key", "els => els.map(e => e.textContent)"
         )
@@ -104,7 +103,6 @@ def test_share_link_restores_edited_finding(browser, base_url):
     reopened.wait_for_function(
         "() => document.querySelector('#result-cvss').textContent === '8.7'"
     )
-    assert reopened.text_content("#result-untraceability") == "High"
     assert reopened.text_content("#result-class") == "A2"
     assert errors == []
 

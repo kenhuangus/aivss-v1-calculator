@@ -3,7 +3,6 @@
 Five categorical metrics describe agentic properties that CVSS-BTE does not
 measure. LC, CP, AP and RH assign the Agentic Effect Class by an ordered
 rule ladder (A2, A1, AX, A0; first match wins). ES enters only Lookup Table U.
-Agent untraceability is mandatory report metadata and never changes a score.
 
 Labels are ordinal categories, never numbers: no arithmetic is performed on
 them. Legacy eight-metric vectors (EX, PT, CA, TD) are accepted only through
@@ -150,71 +149,15 @@ ES_VALUES: dict[str, tuple[str, str]] = {
 
 EX_VALUES = ES_VALUES  # legacy alias (AIVSS 1.0 draft name for ES)
 
-PT_VALUES: dict[str, tuple[str, str]] = {
-    "H": (
-        "High deficit",
-        "Runtime controls do not enforce the approved provider, model, and deployment "
-        "configuration, or routing can change them outside authorized change control.",
-    ),
-    "M": (
-        "Moderate deficit",
-        "Provider, model, and deployment configuration are enforced and changes are "
-        "auditable, but the served artifact or provider-side content cannot be "
-        "independently verified at runtime.",
-    ),
-    "L": (
-        "Low deficit",
-        "Provider, model, and deployment configuration are enforced; artifact identity "
-        "or equivalent attestation is verified; changes require recorded authorization.",
-    ),
-    "X": ("Insufficient evidence", "Model/provider provenance cannot be established."),
-}
-
-CA_VALUES: dict[str, tuple[str, str]] = {
-    "W": (
-        "Wide",
-        "No finite hard aggregate ceiling exists for attacker-triggered consumption, "
-        "or testing demonstrates a bypass.",
-    ),
-    "M": (
-        "Moderate",
-        "A finite hard ceiling exists and no bypass is demonstrated, but coverage is "
-        "incomplete or enforcement is not fail-closed.",
-    ),
-    "N": (
-        "Narrow",
-        "Tested fail-closed aggregate limits cover tokens, paid calls, compute, retries, "
-        "fan-out, queued work, and concurrency for a stable principal and tenant.",
-    ),
-    "X": (
-        "Insufficient evidence",
-        "Aggregate economic limits on the path are unknown.",
-    ),
-}
-
-TD_VALUES: dict[str, tuple[str, str]] = {
-    "H": (
-        "High deficit",
-        "Testing confirms responders cannot reconstruct ordered security-relevant "
-        "actions or bound affected principals from retained records.",
-    ),
-    "M": (
-        "Moderate deficit",
-        "The ordered path and affected principals are reconstructable, but required "
-        "fields, correlation, integrity, or tested retention controls are incomplete.",
-    ),
-    "L": (
-        "Low deficit",
-        "A retrieval exercise verifies correlated, integrity-protected records of inputs, "
-        "context references, model identity, policy decisions, calls, and outcomes.",
-    ),
-    "X": (
-        "Insufficient evidence",
-        "Audit-log coverage and retention cannot be established.",
-    ),
-}
-
 RH_LOCI: tuple[str, ...] = ("evaluator", "environment")
+
+# Values accepted for the dropped draft metrics, used only to validate a legacy
+# eight-metric vector during migration. PT, CA and TD are not AIVSS 1.0 metrics.
+LEGACY_DROPPED_VALUES: dict[str, tuple[str, ...]] = {
+    "PT": ("H", "M", "L", "X"),
+    "CA": ("W", "M", "N", "X"),
+    "TD": ("H", "M", "L", "X"),
+}
 
 
 def classify_rh(
@@ -250,113 +193,6 @@ def classify_rh(
     return "X"
 
 
-def classify_ca(
-    *,
-    ceiling_defined: bool | None,
-    coverage_complete: bool | None,
-    fail_closed: bool | None,
-    bypass_demonstrated: bool | None,
-) -> str:
-    """Classify cost-abuse containment from policy-independent control facts."""
-    values = {
-        "ceiling_defined": ceiling_defined,
-        "coverage_complete": coverage_complete,
-        "fail_closed": fail_closed,
-        "bypass_demonstrated": bypass_demonstrated,
-    }
-    for name, value in values.items():
-        if value is not None and type(value) is not bool:
-            raise ValueError(f"{name} must be true, false, or unknown")
-    if bypass_demonstrated is True or ceiling_defined is False:
-        return "W"
-    if bypass_demonstrated is None or ceiling_defined is None:
-        return "X"
-    if coverage_complete is None or fail_closed is None:
-        return "X"
-    if coverage_complete and fail_closed:
-        return "N"
-    return "M"
-
-
-def classify_td(
-    *,
-    retrieval_tested: bool | None,
-    ordered_actions_reconstructable: bool | None,
-    affected_principals_bounded: bool | None,
-    required_fields_complete: bool | None,
-    integrity_protected: bool | None,
-    retention_verified: bool | None,
-) -> str:
-    """Classify traceability from a retrieval exercise and observable controls."""
-    values = {
-        "retrieval_tested": retrieval_tested,
-        "ordered_actions_reconstructable": ordered_actions_reconstructable,
-        "affected_principals_bounded": affected_principals_bounded,
-        "required_fields_complete": required_fields_complete,
-        "integrity_protected": integrity_protected,
-        "retention_verified": retention_verified,
-    }
-    for name, value in values.items():
-        if value is not None and type(value) is not bool:
-            raise ValueError(f"{name} must be true, false, or unknown")
-    if retrieval_tested is not True:
-        return "X"
-    if (
-        ordered_actions_reconstructable is False
-        or affected_principals_bounded is False
-    ):
-        return "H"
-    if (
-        ordered_actions_reconstructable is None
-        or affected_principals_bounded is None
-        or required_fields_complete is None
-        or integrity_protected is None
-        or retention_verified is None
-    ):
-        return "X"
-    if required_fields_complete and integrity_protected and retention_verified:
-        return "L"
-    return "M"
-
-
-
-
-def classify_untraceability(**observations: bool | None) -> str:
-    """Agent untraceability value (High, Moderate, Low or X) from a retrieval exercise."""
-    return UNTRACEABILITY_LABELS[classify_td(**observations)]
-
-
-UNTRACEABILITY_LABELS: dict[str, str] = {
-    "H": "High",
-    "M": "Moderate",
-    "L": "Low",
-    "X": "X",
-}
-UNTRACEABILITY_CODES: dict[str, str] = {v: k for k, v in UNTRACEABILITY_LABELS.items()}
-UNTRACEABILITY_FIELDS: tuple[str, ...] = (
-    "retrieval_tested",
-    "ordered_actions_reconstructable",
-    "affected_principals_bounded",
-    "required_fields_complete",
-    "integrity_protected",
-    "retention_verified",
-)
-UNTRACEABILITY_DEFINITIONS: dict[str, str] = {
-    "High": (
-        "A retrieval exercise cannot reconstruct the ordered security-relevant "
-        "actions on the path or cannot bound the affected principals."
-    ),
-    "Moderate": (
-        "Both can be reconstructed, but required fields, integrity protection of "
-        "the records, or verified retention is missing."
-    ),
-    "Low": (
-        "Both can be reconstructed, required fields are complete, the records are "
-        "integrity-protected, and retention is verified."
-    ),
-    "X": "No completed retrieval exercise.",
-}
-
 CLASSIFYING_AGENTIC_METRICS: dict[str, dict[str, tuple[str, str]]] = {
     "LC": LC_VALUES,
     "CP": CP_VALUES,
@@ -381,15 +217,15 @@ AI_METRIC_ORDER = AGENTIC_METRIC_ORDER
 
 # Draft eight-metric order (pre-1.0), accepted only for migration.
 LEGACY_METRIC_ORDER: tuple[str, ...] = ("LC", "CP", "AP", "SR", "EX", "PT", "CA", "TD")
-LEGACY_METRICS: dict[str, dict[str, tuple[str, str]]] = {
+LEGACY_METRICS: dict[str, dict[str, Any]] = {
     "LC": LC_VALUES,
     "CP": CP_VALUES,
     "AP": AP_VALUES,
     "SR": LEGACY_SR_VALUES,
     "EX": ES_VALUES,
-    "PT": PT_VALUES,
-    "CA": CA_VALUES,
-    "TD": TD_VALUES,
+    "PT": dict.fromkeys(LEGACY_DROPPED_VALUES["PT"]),
+    "CA": dict.fromkeys(LEGACY_DROPPED_VALUES["CA"]),
+    "TD": dict.fromkeys(LEGACY_DROPPED_VALUES["TD"]),
 }
 
 AGENTIC_METRIC_NAMES: dict[str, str] = {
@@ -616,18 +452,6 @@ def _check_common_evidence(name: str, entry: Any) -> None:
         raise ValueError(f"{name} evidence_refs must contain non-empty references")
 
 
-def validate_untraceability(record: dict[str, Any]) -> str:
-    """Validate agent_untraceability evidence and return High, Moderate, Low or X."""
-    _check_common_evidence("agent_untraceability", record)
-    expected = {"rationale", "evidence_refs", *UNTRACEABILITY_FIELDS}
-    if set(record) != expected:
-        raise ValueError(
-            "agent_untraceability must provide rationale, evidence_refs, and all six "
-            "retrieval-exercise observations"
-        )
-    return classify_untraceability(**{key: record[key] for key in UNTRACEABILITY_FIELDS})
-
-
 def parse_aivss_vector(vector: str) -> AIProfile:
     """Parse a separate AIVSS:1.0 extension vector (LC/CP/AP/RH/ES)."""
     if not isinstance(vector, str):
@@ -695,9 +519,8 @@ def parse_aivss_vector(vector: str) -> AIProfile:
 def convert_legacy_vector(vector: str) -> dict[str, Any]:
     """Convert a draft eight-metric vector to the five-metric form.
 
-    EX becomes ES. SR, PT and CA are not part of the AIVSS 1.0 specification and
-    are dropped; RH is set to X until reward hacking is assessed. TD maps to agent
-    untraceability metadata.
+    EX becomes ES. SR, PT, CA and TD are not part of the AIVSS 1.0 specification
+    and are dropped; RH is set to X until reward hacking is assessed.
     """
     parts = vector.strip().split("/")
     if not parts or parts[0] != AIVSS_EXTENSION_PREFIX:
@@ -725,12 +548,16 @@ def convert_legacy_vector(vector: str) -> dict[str, Any]:
     )
     return {
         "aivss_vector": profile.to_vector(),
-        "agent_untraceability": UNTRACEABILITY_LABELS[found["TD"]],
-        "dropped": {"SR": found["SR"], "PT": found["PT"], "CA": found["CA"]},
+        "dropped": {
+            "SR": found["SR"],
+            "PT": found["PT"],
+            "CA": found["CA"],
+            "TD": found["TD"],
+        },
         "note": (
-            "Converted from a draft eight-metric vector: EX is now ES, TD is recorded "
-            "as agent_untraceability metadata, SR, PT and CA are not part of the "
-            "AIVSS 1.0 specification, and RH (reward hacking) is X until assessed."
+            "Converted from a draft eight-metric vector: EX is now ES, SR, PT, CA and "
+            "TD are not part of the AIVSS 1.0 specification and are dropped, and RH "
+            "(reward hacking) is X until assessed."
         ),
     }
 
