@@ -71,8 +71,7 @@ Every assessment publishes four results for one exploit path:
 
 Conformance Level 2 uses CERT/CC SSVC decision table **`cisa:DT_BOD2604:1.0.0`**
 (BOD 26-04), with Agentic Effect Class **A2** advancing the recommended
-timeline one tier. See [docs/SSVC.md](docs/SSVC.md) and
-[docs/SCORING.md](docs/SCORING.md).
+timeline one tier.
 
 CVSS and AIVSS vectors are separate, following the
 [CVSS v4.0 Extensions Framework](https://www.first.org/cvss/v4.0/user-guide):
@@ -178,15 +177,9 @@ still shows the draft eight-metric profile — see the
 - **Repository source:** [slides.html](slides.html) (mirrored at [docs/slides.html](docs/slides.html))
 - **Navigation controls:** Arrow keys or Space to advance, `F` for fullscreen, `M` to toggle Grid View, and `G` to jump to a specific slide.
 
-## Authoritative documents
+## Resources
 
 - [Masterclass slides](slides.html): interactive 23-slide deck on architecture, scoring, and remediation ([Live](https://kenhuangus.github.io/aivss-v1-candidate/slides.html))
-- [SSVC / BOD 26-04](docs/SSVC.md): Conformance Level 2 decision table, namespaces, overlay rules
-- [Metric rubric](docs/METRIC-RUBRIC.md): value definitions, decision rules, and agent untraceability
-- [Scoring](docs/SCORING.md): Effect Class ladder, Lookup Tables U and AIVSS, and decision support
-- [Figures](docs/assets/figures/README.md): specification figures and their HTML sources
-- [CVSS mapping](docs/CVSS-MAPPING.md): overlap and separation rules
-- [Validation](docs/VALIDATION.md): supported claims and calibration gates
 - [Input schema](schemas/aivss-assessment-input-v1.0.json)
 - [Report schema](schemas/aivss-report-v1.0.json)
 

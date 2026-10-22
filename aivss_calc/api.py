@@ -267,7 +267,7 @@ def rubric() -> dict[str, Any]:
         }
     return {
         "rubric_version": RUBRIC_VERSION,
-        "reference": "docs/METRIC-RUBRIC.md",
+        "reference": "AIVSS 1.0 specification (OWASP AIVSS project)",
         "classifying_metrics": list(CLASSIFYING_AGENTIC_METRICS),
         "uplift_metrics": list(UPLIFT_AGENTIC_METRICS),
         "metrics": metrics,
