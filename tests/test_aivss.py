@@ -1232,3 +1232,14 @@ class TestReviewRevision:
         assert result["agentic_effect_class"] == "A1"
         assert result["aivss"] == 7.5
         assert result["aivss_min"] == result["aivss_max"] == 7.5
+
+    def test_profile_report_publishes_uncertain_range(self):
+        result = profile_report(
+            "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:H/VI:L/VA:N/SC:H/SI:N/SA:N/E:U",
+            profile(lc="D", cp="N", ap="N", sr="X", es="M"),
+        )
+        assert result["agentic_effect_class"] == "A1"
+        assert result["agentic_effect_class_min"] == "A1"
+        assert result["agentic_effect_class_max"] == "A2"
+        assert result["aivss_min"] == 7.5
+        assert result["aivss_max"] == 8.9

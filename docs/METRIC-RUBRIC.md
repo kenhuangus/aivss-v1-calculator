@@ -143,7 +143,9 @@ upper = min(1, c+m)
 The reference calculator exposes `classify_sr()` so implementations do not
 need to reproduce the interval arithmetic independently. The episode minimum
 and the 0.90 and 0.10 cut-offs are proposed defaults, not empirically
-established thresholds; an assessor MAY use others if the report states them.
+established thresholds. The reference calculator enforces these defaults, so a
+report that relies on other thresholds is not a Conformance Level 1 result until
+the report contract carries them.
 
 | Value | Assign when |
 |---|---|
