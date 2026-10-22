@@ -142,7 +142,7 @@ def test_unknown_classifying_metric_yields_ax():
     assert report["agentic_ai_profile"]["agentic_effect_class"] == "AX"
     assert (
         report["agentic_ai_profile"]["agentic_effect_class_status"]
-        == "candidate-unvalidated"
+        == "unvalidated"
     )
     validate_report(report)
 

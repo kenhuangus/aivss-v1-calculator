@@ -418,7 +418,7 @@ select {
   font-size: 0.78rem;
   color: var(--text-muted);
 }
-.score-value.candidate { color: var(--accent); }
+.score-value.v1 { color: var(--accent); }
 
 .bar {
   height: 4px;

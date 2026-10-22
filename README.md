@@ -26,7 +26,7 @@ and score intact, records five categorical Agentic AI metrics in a separate
 extension vector, and reads the AIVSS score from published lookup tables. No
 arithmetic is performed on the agentic metrics.
 
-Status: **candidate**. The metric rubric, lookup tables and conformance rules
+Status: **v1**. The metric rubric, lookup tables and conformance rules
 are testable. The Table 6 cell values are policy settings that have not yet
 been validated against independently rated findings, and the remediation
 overlay and organization-local priority index are **not empirically
@@ -34,7 +34,7 @@ calibrated**; none of them may be presented as probabilities or regulatory
 requirements.
 The [extension manifest](aivss-extension.json) records
 `first_validation_status: not-submitted`; FIRST has not validated or endorsed
-this candidate.
+this extension.
 
 ## Model
 
@@ -158,10 +158,10 @@ python examples/generate_asi_examples.py
 ```
 
 These are synthetic format and calculation fixtures, not incidents, an
-empirical validation corpus, or evidence that the candidate model predicts
+empirical validation corpus, or evidence that the model predicts
 outcomes. ASI category names come from the
 [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/);
-OWASP does not endorse this AIVSS candidate.
+OWASP does not endorse AIVSS v1.
 
 ## Presentation slides
 

@@ -6,7 +6,7 @@ publishes three of the four variables for every CVE ID through the Vulnrichment
 Program; the fourth (asset exposure) is supplied by the asset owner.
 
 For a CVE, the unmodified BOD result is reported separately from the
-non-binding AIVSS candidate overlay. For a non-CVE finding, the same table may
+non-binding AIVSS overlay. For a non-CVE finding, the same table may
 be used only as an explicitly labelled analogy and never as a compliance result.
 
 Timeline table transcribed from the CERT/CC SSVC "CISA BOD 26-04 Response Model"
@@ -236,7 +236,7 @@ def decide(
     vulnrichment_automatable: bool | None = None,
     vulnrichment_technical_impact: str | None = None,
 ) -> dict[str, object]:
-    """Run BOD decision support plus the non-binding AIVSS candidate overlay.
+    """Run BOD decision support plus the non-binding AIVSS overlay.
 
     BOD defaults apply only to CVEs. Non-CVE findings require explicit analogy
     inputs; AIVSS never derives BOD decision points from RH or CVSS.
@@ -458,7 +458,7 @@ def decide(
                 "forensic_triage_required": base == "3DF",
                 "note": (
                     "bod_2604_timeline is the unmodified compliance result. "
-                    "The AIVSS recommendation is a separate, non-binding candidate overlay."
+                    "The AIVSS recommendation is a separate, non-binding overlay."
                 ),
             }
         )

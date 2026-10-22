@@ -3,7 +3,7 @@
 Published December 9, 2025 by the OWASP GenAI Security Project and used as the
 AIVSS finding taxonomy. Findings outside ASI01–ASI10 that are validated through
 CSA MAESTRO (or equivalent) are recorded as MAESTRO-extended (Section 5.7).
-OWASP does not endorse this AIVSS candidate.
+OWASP does not endorse AIVSS v1.
 """
 
 from __future__ import annotations

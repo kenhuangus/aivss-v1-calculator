@@ -146,7 +146,7 @@ RESULT_INFO: dict[str, str] = {
         "AIVSS recommendation."
     ),
     "aivss_recommendation": (
-        "The AIVSS candidate overlay: the baseline advanced one tier when the Effect "
+        "The AIVSS overlay: the baseline advanced one tier when the Effect "
         "Class is A2. Non-binding and experimental-uncalibrated."
     ),
 }

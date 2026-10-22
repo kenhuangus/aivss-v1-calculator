@@ -1,4 +1,4 @@
-"""Syntactic and semantic validation for AIVSS candidate artifacts."""
+"""Syntactic and semantic validation for AIVSS v1 artifacts."""
 
 from __future__ import annotations
 
@@ -170,9 +170,9 @@ def validate_report(report: dict[str, Any]) -> None:
         != AGENTIC_EFFECT_CLASS_LABELS[profile.effect_class()]
     ):
         raise ValueError("agentic_effect_class_label does not match the class")
-    if extension["agentic_effect_class_status"] != "candidate-unvalidated":
+    if extension["agentic_effect_class_status"] != "unvalidated":
         raise ValueError(
-            "agentic_effect_class_status must disclose candidate validity"
+            "agentic_effect_class_status must disclose validation status"
         )
 
     scores = report["scores"]

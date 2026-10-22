@@ -273,7 +273,7 @@ def assess(a: Assessment) -> dict[str, Any]:
         "report_schema_version": REPORT_SCHEMA_VERSION,
         "rubric_version": RUBRIC_VERSION,
         "calculator_version": CALCULATOR_VERSION,
-        "specification_status": "candidate",
+        "specification_status": "v1",
         "finding_id": a.finding_id,
         "path_id": a.path_id,
         "risk_category": risk_category,

@@ -12,6 +12,6 @@
   "report_schema": "schemas/aivss-report-v1.0.json",
   "first_validation_status": "not-submitted",
   "scoring_status": "normative-lookup",
-  "effect_class_status": "candidate-unvalidated",
+  "effect_class_status": "unvalidated",
   "decision_overlay_status": "experimental-uncalibrated"
 }

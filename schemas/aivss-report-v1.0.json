@@ -24,7 +24,7 @@
     "report_schema_version": {"const": "1.0"},
     "rubric_version": {"const": "1.2.0"},
     "calculator_version": {"const": "1.2.0"},
-    "specification_status": {"const": "candidate"},
+    "specification_status": {"const": "v1"},
     "finding_id": {"type": "string", "minLength": 1},
     "path_id": {"type": "string", "minLength": 1},
     "title": {"type": "string", "minLength": 1},
@@ -237,7 +237,7 @@
         "agentic_effect_class_label": {
           "enum": ["None", "Present", "Substantial", "Insufficient evidence"]
         },
-        "agentic_effect_class_status": {"const": "candidate-unvalidated"},
+        "agentic_effect_class_status": {"const": "unvalidated"},
         "agentic_effect_class_min": {"enum": ["A0", "A1", "A2"]},
         "agentic_effect_class_max": {"enum": ["A0", "A1", "A2"]},
         "agentic_uplift_u": {

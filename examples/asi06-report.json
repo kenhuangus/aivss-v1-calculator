@@ -3,7 +3,7 @@
   "report_schema_version": "1.0",
   "rubric_version": "1.2.0",
   "calculator_version": "1.2.0",
-  "specification_status": "candidate",
+  "specification_status": "v1",
   "finding_id": "AIVSS-ASI06-001",
   "path_id": "AIVSS-ASI06-001-PATH-1",
   "risk_category": {
@@ -98,7 +98,7 @@
     "provisional": false,
     "agentic_effect_class": "A2",
     "agentic_effect_class_label": "Substantial",
-    "agentic_effect_class_status": "candidate-unvalidated",
+    "agentic_effect_class_status": "unvalidated",
     "agentic_uplift_u": 9,
     "agentic_effect_class_min": "A2",
     "agentic_effect_class_max": "A2"
