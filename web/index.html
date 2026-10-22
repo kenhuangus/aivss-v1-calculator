@@ -30,8 +30,6 @@
       <a href="#scores">Top 10 Scores</a>
       <a href="https://github.com/kenhuangus/aivss-v1-candidate" target="_blank" rel="noopener">GitHub</a>
       <a href="https://aivss.owasp.org/" target="_blank" rel="noopener">OWASP AIVSS</a>
-      <a href="https://github.com/kenhuangus/aivss-v1-candidate/blob/main/docs/METRIC-RUBRIC.md" target="_blank" rel="noopener">Metric Rubric</a>
-      <a href="https://github.com/kenhuangus/aivss-v1-candidate/blob/main/docs/SSVC.md" target="_blank" rel="noopener">SSVC / BOD 26-04</a>
     </nav>
   </header>
 
@@ -66,7 +64,7 @@
           <input id="cvss-input" type="text" spellcheck="false" placeholder="CVSS:4.0/AV:N/AC:L/…" />
         </label>
         <label class="field">
-          <span class="field-label" data-hint="Paste the separate AIVSS:1.0 extension vector holding the five agentic metrics (LC, CP, AP, SR, ES). A draft eight-metric vector is converted automatically.">AIVSS vector</span>
+          <span class="field-label" data-hint="Paste the separate AIVSS:1.0 extension vector holding the five agentic metrics (LC, CP, AP, RH, ES). A draft eight-metric vector is converted automatically.">AIVSS vector</span>
           <input id="aivss-input" type="text" spellcheck="false" placeholder="AIVSS:1.0/LC:D/CP:C/…" />
         </label>
         <button type="submit" class="btn btn-outline btn-sm" data-hint="Validate both vectors and load them into the metric buttons below.">Load vectors</button>
@@ -92,7 +90,7 @@
 
           <fieldset class="panel metric-panel">
             <legend>Agentic AI Profile · classifying metrics</legend>
-            <p class="panel-note">LC, CP, AP and SR determine the Agentic Effect Class through an ordered ladder (A2, A1, AX, A0). X records insufficient evidence and makes the result provisional; it is not a benign default.</p>
+            <p class="panel-note">LC, CP, AP and RH determine the Agentic Effect Class through an ordered ladder (A2, A1, AX, A0). X records insufficient evidence and makes the result provisional; it is not a benign default.</p>
             <div id="aivss-classifying" class="metric-groups"></div>
           </fieldset>
 

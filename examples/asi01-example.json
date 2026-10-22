@@ -4,7 +4,7 @@
   "title": "Direct prompt injection hijacks planning agent goals",
   "summary": "Attacker-supplied instructions override the agent's intended goals via a language-mediated control path.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:N/SC:H/SI:L/SA:N/E:P",
-  "aivss_vector": "AIVSS:1.0/LC:D/CP:S/AP:C/SR:R/ES:M",
+  "aivss_vector": "AIVSS:1.0/LC:D/CP:S/AP:C/RH:N/ES:M",
   "publicly_exposed": true,
   "automatable": true,
   "technical_impact": "total",
@@ -53,20 +53,16 @@
         "fixture://AIVSS-ASI01-001/ap"
       ]
     },
-    "SR": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI01-001: A production-equivalent fixture records 30 successful independent episodes out of 30, each from clean state with the hard production budget of three attempts for one stable principal; the one-sided 95% Wilson lower bound is 0.917.",
+    "RH": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI01-001: Every evaluator, verifier and reward channel on the path sits outside the agent's reach (write-protected or in a separate trust domain), and a test confirms the isolation.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI01-001/sr"
+        "fixture://AIVSS-ASI01-001/rh"
       ],
-      "method": "empirical",
-      "successes": 30,
-      "episodes": 30,
-      "retry_budget": 3,
-      "production_equivalent": true,
-      "budget_enforced": true,
-      "independent": true,
-      "lower_bound": 0.9172621864014352,
-      "upper_bound": 1.0
+      "reachable_proxy": false,
+      "isolation_verified": true,
+      "verified_episodes": null,
+      "episodes_reviewed": null,
+      "locus": null
     },
     "ES": {
       "rationale": "Synthetic reference fact for AIVSS-ASI01-001: Extensions are allowlisted, but material gaps remain in argument schemas, credentials or callable operations.",

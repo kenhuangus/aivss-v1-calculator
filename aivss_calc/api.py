@@ -21,7 +21,6 @@ from .ai_metrics import (
     UPLIFT_AGENTIC_METRICS,
     UPLIFT_TABLE,
     AIProfile,
-    check_sr_at,
     convert_legacy_vector,
     parse_aivss_vector,
     split_ai_vector,
@@ -35,7 +34,6 @@ from .macrovector import (
     ENV_REQUIREMENT_METRICS,
     MODIFIED_METRICS,
     THREAT_METRICS,
-    effective,
     macrovector,
     parse_cvss_vector,
 )
@@ -143,10 +141,10 @@ RESULT_INFO: dict[str, str] = {
     ),
     "uplift": (
         "Agentic Uplift U (Table 5), an informative 0-10 ordinal label from the "
-        "Effect Class, SR and ES. No decision uses U and it is never added to CVSS."
+        "Effect Class, RH and ES. No decision uses U and it is never added to CVSS."
     ),
     "effect_class": (
-        "Ordinal class from the ordered ladder on LC, CP, AP and SR (A2, A1, AX, A0; "
+        "Ordinal class from the ordered ladder on LC, CP, AP and RH (A2, A1, AX, A0; "
         "first match wins). It selects the Table 6 column; only A2 triggers the "
         "remediation overlay."
     ),
@@ -166,7 +164,7 @@ RESULT_INFO: dict[str, str] = {
 
 PROFILE_NOTE = (
     "AIVSS is read from Lookup Table AIVSS (Table 6) and is never lower than "
-    "CVSS-BTE, which is published unchanged beside it. LC/CP/AP/SR determine the "
+    "CVSS-BTE, which is published unchanged beside it. LC/CP/AP/RH determine the "
     "Effect Class; ES enters only the informative Lookup Table U."
 )
 
@@ -174,7 +172,6 @@ PROFILE_NOTE = (
 def profile_report(cvss_vector: str, profile: AIProfile) -> dict[str, Any]:
     """Score a CVSS v4.0 vector with its Agentic AI profile."""
     metrics = parse_cvss_vector(cvss_vector)
-    check_sr_at(profile.sr, effective(metrics, "AT"))
     score = score_cvss_bte(cvss_vector)
     effect = profile.agentic_effect_class()
     lookup = aivss_lookup(score, effect)
@@ -267,7 +264,7 @@ def rubric() -> dict[str, Any]:
         }
     return {
         "rubric_version": RUBRIC_VERSION,
-        "reference": "docs/METRIC-RUBRIC.md",
+        "reference": "AIVSS 1.0 specification (OWASP AIVSS project)",
         "classifying_metrics": list(CLASSIFYING_AGENTIC_METRICS),
         "uplift_metrics": list(UPLIFT_AGENTIC_METRICS),
         "metrics": metrics,

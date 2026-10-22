@@ -137,7 +137,7 @@ def test_web_incomplete_decision_keeps_severity():
     )
     assert response["ok"]
     assert response["result"]["profile"]["cvss_bte"] == 9.2
-    assert response["result"]["profile"]["aivss"] == 10.0
+    assert response["result"]["profile"]["aivss"] == 9.7
     assert "decision" not in response["result"]
     assert response["result"]["decision_error"] == (
         "publicly_exposed must be true or false"
@@ -188,7 +188,7 @@ def test_web_kev_listed_cve_uses_vulnrichment_values():
                 "cvss_vector": SCENARIOS[0]["cvss_vector"],
                 "aivss_vector": "AIVSS:1.0/LC:D",
             },
-            "must specify LC, CP, AP, SR and ES",
+            "must specify LC, CP, AP, RH and ES",
         ),
     ],
 )
@@ -201,8 +201,8 @@ def test_web_request_errors_are_reported(request_body, message):
 def test_catalog_covers_form_and_presets():
     catalog = calculator_catalog()
     assert _call({"op": "catalog"})["result"] == json.loads(json.dumps(catalog))
-    assert list(catalog["metric_names"]) == ["LC", "CP", "AP", "SR", "ES"]
-    assert catalog["rubric"]["classifying_metrics"] == ["LC", "CP", "AP", "SR"]
+    assert list(catalog["metric_names"]) == ["LC", "CP", "AP", "RH", "ES"]
+    assert catalog["rubric"]["classifying_metrics"] == ["LC", "CP", "AP", "RH"]
     assert catalog["rubric"]["uplift_metrics"] == ["ES"]
     assert set(catalog["decision_inputs"]["agent_untraceability"]["values"]) == {
         "High", "Moderate", "Low", "X",
@@ -236,8 +236,8 @@ def test_web_converts_legacy_vector_and_reports_migration():
     )
     assert response["ok"], response
     profile = response["result"]["profile"]
-    assert profile["aivss_vector"] == "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
-    assert profile["migration"]["dropped"] == {"PT": "H", "CA": "M"}
+    assert profile["aivss_vector"] == "AIVSS:1.0/LC:D/CP:C/AP:L/RH:X/ES:W"
+    assert profile["migration"]["dropped"] == {"SR": "R", "PT": "H", "CA": "M"}
     decision = response["result"]["decision"]
     assert decision["decision_points"]["agent_untraceability"] == "High"
 
@@ -297,7 +297,7 @@ def test_web_rejects_malformed_fields_with_an_error_response(field, value, messa
 
 
 LEGACY = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H"
-CONVERTED = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
+CONVERTED = "AIVSS:1.0/LC:D/CP:C/AP:L/RH:X/ES:W"
 
 
 def test_web_reports_migration_for_client_side_conversion():
@@ -312,7 +312,7 @@ def test_web_reports_migration_for_client_side_conversion():
     assert response["ok"], response
     migration = response["result"]["profile"]["migration"]
     assert migration["aivss_vector"] == CONVERTED
-    assert migration["dropped"] == {"PT": "H", "CA": "M"}
+    assert migration["dropped"] == {"SR": "R", "PT": "H", "CA": "M"}
 
 
 def test_web_omits_migration_once_metrics_are_edited():
@@ -341,7 +341,19 @@ def test_web_rejects_non_string_migrated_from():
     assert "must be a string" in response["error"]
 
 
-def test_web_rejects_sr_probabilistic_without_at_p():
+def test_web_accepts_rh_possible_with_any_at():
+    for at in ("N", "P"):
+        response = _call(
+            {
+                "op": "calculate",
+                "cvss_vector": f"CVSS:4.0/AV:N/AC:L/AT:{at}/PR:N/UI:N/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N",
+                "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:N/RH:P/ES:M",
+            }
+        )
+        assert response["ok"] is True
+
+
+def test_web_rejects_the_retired_sr_metric():
     response = _call(
         {
             "op": "calculate",
@@ -350,7 +362,7 @@ def test_web_rejects_sr_probabilistic_without_at_p():
         }
     )
     assert response["ok"] is False
-    assert "AT:P" in response["error"]
+    assert "replaced by RH" in response["error"]
 
 
 def test_package_zip_contains_importable_sources():

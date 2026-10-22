@@ -102,21 +102,21 @@ def test_all_metric_combinations_have_deterministic_completeness_and_class():
         assert profile.provisional == ("X" in values[:4])
         effect = profile.effect_class()
         assert effect in ("A0", "A1", "A2", "AX")
-        lc, cp, ap, sr = values[:4]
-        a2 = ap == "L" or (lc in "DI" and cp == "C") or (lc == "D" and sr == "R")
-        a1 = lc in "DI" or cp in "SC" or ap == "C"
+        lc, cp, ap, rh = values[:4]
+        a2 = ap == "L" or (lc in "DI" and cp == "C") or (lc in "DI" and rh == "D")
+        a1 = lc in "DI" or cp in "SC" or ap == "C" or rh == "D"
         if a2:
             assert effect == "A2"
         elif a1:
             assert effect == "A1"
-        elif "X" in (lc, cp, ap):
+        elif "X" in (lc, cp, ap, rh):
             assert effect == "AX"
         else:
             assert effect == "A0"
 
 
 def test_unknown_classifying_metric_yields_ax():
-    vector = "AIVSS:1.0/LC:X/CP:N/AP:N/SR:R/ES:W"
+    vector = "AIVSS:1.0/LC:X/CP:N/AP:N/RH:N/ES:W"
     report = assess(
         Assessment(
             finding_id="unknown",
@@ -218,27 +218,13 @@ def _input_schema_validator():
     return jsonschema.Draft202012Validator(schema)
 
 
-@pytest.mark.parametrize(
-    ("old", "new", "valid"),
-    [
-        ("/AT:P/", "/AT:N/", False),
-        ("/E:P", "/E:P/MAT:N", False),
-        ("/AT:P/", "/AT:N/", None),
-    ],
-    ids=["at-n", "mat-n-overrides-at-p", "mat-p-overrides-at-n"],
-)
-def test_input_schema_enforces_sr_at_rule_on_effective_at(old, new, valid):
-    payload = scenario_payload("ASI04")
-    payload["cvss_vector"] = payload["cvss_vector"].replace(old, new)
-    if valid is None:
-        payload["cvss_vector"] += "/MAT:P"
-        valid = True
-    assert _input_schema_validator().is_valid(payload) is valid
-    if valid:
-        validate_assessment_input(payload)
-    else:
-        with pytest.raises(jsonschema.ValidationError):
-            validate_assessment_input(payload)
+@pytest.mark.parametrize("at", ["N", "P"])
+def test_input_schema_has_no_rh_agreement_rule_with_at(at):
+    payload = scenario_payload("ASI05")
+    assert "RH:P" in payload["aivss_vector"]
+    payload["cvss_vector"] = payload["cvss_vector"].replace("/AT:N/", f"/AT:{at}/")
+    assert _input_schema_validator().is_valid(payload) is True
+    validate_assessment_input(payload)
 
 
 def test_cli_rejects_partial_agentic_flags(capsys):
@@ -273,7 +259,7 @@ def test_cli_priority_with_complete_org_inputs(capsys):
 
 
 def test_cli_accepts_separate_extension_vector(capsys):
-    vector = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
+    vector = "AIVSS:1.0/LC:D/CP:C/AP:L/RH:D/ES:W"
     assert main(["profile", CVSS, "--aivss-vector", vector]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["cvss_vector"] == CVSS
@@ -289,7 +275,7 @@ def test_cli_migrate_vector(capsys):
     legacy = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H"
     assert main(["migrate-vector", legacy]) == 0
     output = json.loads(capsys.readouterr().out)
-    assert output["aivss_vector"] == "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
+    assert output["aivss_vector"] == "AIVSS:1.0/LC:D/CP:C/AP:L/RH:X/ES:W"
     assert output["agent_untraceability"] == "High"
 
 
@@ -301,4 +287,4 @@ def test_cli_profile_rejects_legacy_vector(capsys):
 
 def test_extension_parser_rejects_out_of_order_metrics():
     with pytest.raises(ValueError, match="out of order"):
-        parse_aivss_vector("AIVSS:1.0/CP:C/LC:D/AP:L/SR:R/ES:W")
+        parse_aivss_vector("AIVSS:1.0/CP:C/LC:D/AP:L/RH:N/ES:W")

@@ -28,7 +28,7 @@ from .scenarios import SCENARIOS, scenario_payload
 from .taxonomy import ASI_TOP_10
 from .validation import validate_assessment_input, validate_report
 
-CLASSIFYING_METRICS = ("LC", "CP", "AP", "SR")
+CLASSIFYING_METRICS = ("LC", "CP", "AP", "RH")
 UPLIFT_METRICS = ("ES",)
 ALL_AGENTIC_METRICS = CLASSIFYING_METRICS + UPLIFT_METRICS
 
@@ -56,7 +56,7 @@ def _profile_from_args(args: argparse.Namespace) -> AIProfile | None:
     missing = [name for name in ALL_AGENTIC_METRICS if supplied[name] is None]
     if missing:
         raise ValueError(
-            "all five AIVSS metrics (LC, CP, AP, SR, ES) are required when flags "
+            "all five AIVSS metrics (LC, CP, AP, RH, ES) are required when flags "
             "are used; "
             f"missing {', '.join(missing)}"
         )
@@ -313,7 +313,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser(
         "migrate-vector",
-        help="Convert a draft eight-metric AIVSS vector (EX/PT/CA/TD) to LC/CP/AP/SR/ES",
+        help="Convert a draft eight-metric AIVSS vector (EX/PT/CA/TD) to LC/CP/AP/RH/ES",
     )
     p.add_argument("vector")
     p.set_defaults(func=cmd_migrate_vector)

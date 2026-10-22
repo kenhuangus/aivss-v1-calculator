@@ -1,7 +1,7 @@
 """AIVSS 1.0 reference calculator.
 
 CVSS severity remains independently reproducible as CVSS-BTE. AIVSS 1.0
-adds a five-metric agentic profile (LC, CP, AP, SR, ES), derives an Agentic
+adds a five-metric agentic profile (LC, CP, AP, RH, ES), derives an Agentic
 Effect Class (A0, A1, A2, AX) and reads the AIVSS score from the published
 lookup table (Table 6 of the specification). Agent untraceability is a
 separate decision input, not a score metric.
@@ -12,11 +12,9 @@ from .ai_metrics import (
     AI_METRIC_ORDER,
     AI_METRICS,
     AIProfile,
-    SRClassification,
     UNTRACEABILITY_LABELS,
-    check_sr_at,
+    classify_rh,
     classify_ca,
-    classify_sr,
     classify_td,
     classify_untraceability,
     convert_legacy_vector,
@@ -68,7 +66,6 @@ __all__ = [
     "MAESTRO_EXTENDED_ID",
     "OrgContext",
     "Provenance",
-    "SRClassification",
     "SPEC_VERSION",
     "TABLE_6",
     "TIMELINE_LABELS",
@@ -80,7 +77,7 @@ __all__ = [
     "assess",
     "assessment_from_payload",
     "bod_timeline",
-    "check_sr_at",
+    "classify_rh",
     "compute_priority",
     "convert_legacy_vector",
     "cvss_nomenclature",
@@ -93,7 +90,6 @@ __all__ = [
     "priority_band",
     "resolve_exploit_maturity",
     "score_cvss_bte",
-    "classify_sr",
     "classify_ca",
     "classify_td",
     "classify_untraceability",

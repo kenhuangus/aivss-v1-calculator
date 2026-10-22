@@ -4,7 +4,7 @@
   "title": "Code interpreter executes attacker-supplied shell commands",
   "summary": "Agent reaches a code-execution path and runs attacker-controlled instructions.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N/E:P",
-  "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:N/SR:R/ES:M",
+  "aivss_vector": "AIVSS:1.0/LC:D/CP:N/AP:N/RH:P/ES:M",
   "publicly_exposed": true,
   "automatable": true,
   "technical_impact": "total",
@@ -53,20 +53,16 @@
         "fixture://AIVSS-ASI05-001/ap"
       ]
     },
-    "SR": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI05-001: A production-equivalent fixture records 30 successful independent episodes out of 30, each from clean state with the hard production budget of three attempts for one stable principal; the one-sided 95% Wilson lower bound is 0.917.",
+    "RH": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI05-001: The agent can write to the test harness on the path. A production-equivalent review of 30 episodes finds no verified reward-hacking episode.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI05-001/sr"
+        "fixture://AIVSS-ASI05-001/rh"
       ],
-      "method": "empirical",
-      "successes": 30,
-      "episodes": 30,
-      "retry_budget": 3,
-      "production_equivalent": true,
-      "budget_enforced": true,
-      "independent": true,
-      "lower_bound": 0.9172621864014352,
-      "upper_bound": 1.0
+      "reachable_proxy": true,
+      "isolation_verified": null,
+      "verified_episodes": 0,
+      "episodes_reviewed": 30,
+      "locus": "environment"
     },
     "ES": {
       "rationale": "Synthetic reference fact for AIVSS-ASI05-001: Extensions are allowlisted, but material gaps remain in argument schemas, credentials or callable operations.",
