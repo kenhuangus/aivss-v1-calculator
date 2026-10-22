@@ -10,7 +10,7 @@ Two live resources are hosted for this project — no installation needed:
    Class, Agentic Uplift U, the AIVSS lookup score, and an optional SSVC /
    CISA BOD 26-04 remediation timeline instantly.
    It runs the exact same reference code as the CLI.
-   **→ https://kenhuangus.github.io/aivss-v1-candidate/**
+   **→ https://kenhuangus.github.io/aivss-v1-calculator/**
 
 2. **Interactive Slide Deck** — a 23-slide masterclass presentation covering
    the AIVSS 1.0 decoupled architecture, CVSS v4.0 interpretation, SSVC / BOD
@@ -18,7 +18,7 @@ Two live resources are hosted for this project — no installation needed:
    keys to navigate. The deck predates the AIVSS 1.0 specification and still
    shows the draft eight-metric profile; the specification and this README
    are authoritative.
-   **→ https://kenhuangus.github.io/aivss-v1-candidate/slides.html**
+   **→ https://kenhuangus.github.io/aivss-v1-calculator/slides.html**
 
 AIVSS is a CVSS v4.0 extension for rating the cybersecurity severity of
 vulnerabilities in Agentic AI systems. It keeps the official CVSS v4.0 vector
@@ -84,7 +84,7 @@ U 10 and AIVSS 9.5.
 
 ## Reference calculator conformance
 
-Repository: https://github.com/kenhuangus/aivss-v1-candidate
+Repository: https://github.com/kenhuangus/aivss-v1-calculator
 
 The reference calculator (`aivss-calc` 1.2.0) implements the AIVSS 1.0
 specification at Conformance Levels 1 and 2:
@@ -171,13 +171,13 @@ CVSS v4.0 interpretations, SSVC / CISA BOD 26-04 timelines, and the EchoLeak
 still shows the draft eight-metric profile — see the
 **[Try it online](#-try-it-online)** link at the top for the live deck.
 
-- **Live presentation (GitHub Pages):** https://kenhuangus.github.io/aivss-v1-candidate/slides.html
+- **Live presentation (GitHub Pages):** https://kenhuangus.github.io/aivss-v1-calculator/slides.html
 - **Repository source:** [slides.html](slides.html) (mirrored at [docs/slides.html](docs/slides.html))
 - **Navigation controls:** Arrow keys or Space to advance, `F` for fullscreen, `M` to toggle Grid View, and `G` to jump to a specific slide.
 
 ## Resources
 
-- [Masterclass slides](slides.html): interactive 23-slide deck on architecture, scoring, and remediation ([Live](https://kenhuangus.github.io/aivss-v1-candidate/slides.html))
+- [Masterclass slides](slides.html): interactive 23-slide deck on architecture, scoring, and remediation ([Live](https://kenhuangus.github.io/aivss-v1-calculator/slides.html))
 - [Input schema](schemas/aivss-assessment-input-v1.0.json)
 - [Report schema](schemas/aivss-report-v1.0.json)
 
