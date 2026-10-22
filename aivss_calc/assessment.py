@@ -279,6 +279,9 @@ def assess(a: Assessment) -> dict[str, Any]:
     ai_class = profile.effect_class()
     uplift = profile.agentic_uplift_u()
     lookup = aivss_lookup(cvss_bte, ai_class)
+    class_min, class_max = profile.effect_class_range()
+    aivss_min = aivss_lookup(cvss_bte, class_min)["aivss"]
+    aivss_max = aivss_lookup(cvss_bte, class_max)["aivss"]
 
     risk_category = normalize_risk_category(a.asi_category, a.taxonomy_metadata)
 
@@ -295,6 +298,7 @@ def assess(a: Assessment) -> dict[str, Any]:
         "cvss": {
             "vector": resolved_vector,
             "macrovector": mv,
+            "cvss_score": cvss_bte,
             "cvss_bte": cvss_bte,
             "exploit_maturity": {
                 "e": maturity["e"],
@@ -323,6 +327,8 @@ def assess(a: Assessment) -> dict[str, Any]:
             "agentic_effect_class_label": AGENTIC_EFFECT_CLASS_LABELS[ai_class],
             "agentic_effect_class_status": EFFECT_CLASS_STATUS,
             "agentic_uplift_u": uplift,
+            "agentic_effect_class_min": class_min,
+            "agentic_effect_class_max": class_max,
         },
         "agent_untraceability": {
             "value": untraceability,
@@ -330,6 +336,7 @@ def assess(a: Assessment) -> dict[str, Any]:
             "evidence": dict(a.agent_untraceability),
         },
         "scores": {
+            "cvss_score": cvss_bte,
             "cvss_bte": cvss_bte,
             "cvss_nomenclature": cvss_nomenclature(metrics),
             "cvss_band": lookup["cvss_band"],
@@ -337,6 +344,8 @@ def assess(a: Assessment) -> dict[str, Any]:
             "provisional": profile.provisional,
             "agentic_uplift_u": uplift,
             "aivss": lookup["aivss"],
+            "aivss_min": aivss_min,
+            "aivss_max": aivss_max,
             "aivss_band": lookup["aivss_band"],
             "table_cell": lookup["table_cell"],
             "rule": lookup["rule"],

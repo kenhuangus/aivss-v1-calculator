@@ -52,7 +52,9 @@ CP_VALUES: dict[str, tuple[str, str]] = {
         "Attacker-controlled context or memory persists in durable stores — vector "
         "databases, long-term agent memory, episodic memory banks, RAG indexes, "
         "user profiles, or training/fine-tuning data — and remains reachable after "
-        "the originating session ends.",
+        "the originating session ends. Stored source content that is only "
+        "re-retrieved, without altering agent memory or standing behaviour, is "
+        "not CP.",
     ),
     "S": (
         "Session context",
@@ -63,7 +65,7 @@ CP_VALUES: dict[str, tuple[str, str]] = {
     "N": (
         "None",
         "Single-turn or stateless; no attacker-controlled context or memory carryover "
-        "between requests.",
+        "between requests, or only re-retrieval of unmodified source content.",
     ),
     "X": (
         "Insufficient evidence",
@@ -515,6 +517,29 @@ class AIProfile:
             return "AX"
         return "A0"
 
+    def effect_class_range(self) -> tuple[str, str]:
+        """Observed minimum and maximum possible Effect Class (Section 5.10).
+
+        The minimum treats each X as its least severe value (LC:N, CP:N, AP:N,
+        SR:U); the maximum treats each X as its most severe value (LC:D, CP:C,
+        AP:L, SR:R). With no X the two are equal to the Effect Class.
+        """
+        low = AIProfile(
+            "N" if self.lc == UNKNOWN_VALUE else self.lc,
+            "N" if self.cp == UNKNOWN_VALUE else self.cp,
+            "N" if self.ap == UNKNOWN_VALUE else self.ap,
+            "U" if self.sr == UNKNOWN_VALUE else self.sr,
+            self.es,
+        )
+        high = AIProfile(
+            "D" if self.lc == UNKNOWN_VALUE else self.lc,
+            "C" if self.cp == UNKNOWN_VALUE else self.cp,
+            "L" if self.ap == UNKNOWN_VALUE else self.ap,
+            "R" if self.sr == UNKNOWN_VALUE else self.sr,
+            self.es,
+        )
+        return low.effect_class(), high.effect_class()
+
     def agentic_uplift_u(self) -> int | None:
         """Lookup Table U (Table 5). Informative; returns None when ES is X."""
         if self.es == UNKNOWN_VALUE:
@@ -782,3 +807,4 @@ def split_ai_vector(vector: str) -> tuple[str, AIProfile | None]:
                 "extension vector"
             )
     return text, None
+

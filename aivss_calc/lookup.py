@@ -6,9 +6,10 @@ CVSS-BTE and the Agentic Effect Class. No arithmetic is performed:
 * A0 and AX: AIVSS equals CVSS-BTE unchanged (an AX result is provisional).
 * A1 and A2: AIVSS is the higher of the band's cell value and CVSS-BTE.
 
-AIVSS is therefore never lower than CVSS-BTE and stays within 0.0 to 10.0, as
-the CVSS v4.0 Extensions Framework (User Guide, Section 3.11) requires of an
-extension that changes the score.
+AIVSS is therefore never lower than CVSS-BTE. That floor is an AIVSS design
+choice, not a FIRST requirement. The CVSS v4.0 Extensions Framework (User
+Guide, Section 3.11) requires that existing metric definitions are preserved
+and that an extension that changes the score stays within 0.0 to 10.0.
 """
 
 from __future__ import annotations

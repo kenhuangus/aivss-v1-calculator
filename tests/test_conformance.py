@@ -59,6 +59,7 @@ def test_versions_are_consistent_across_package_and_schemas():
         == REPORT_SCHEMA_VERSION
     )
     assert report_schema["$defs"]["scores"]["required"] == [
+        "cvss_score",
         "cvss_bte",
         "cvss_nomenclature",
         "cvss_band",
@@ -66,6 +67,8 @@ def test_versions_are_consistent_across_package_and_schemas():
         "provisional",
         "agentic_uplift_u",
         "aivss",
+        "aivss_min",
+        "aivss_max",
         "aivss_band",
         "table_cell",
         "rule",

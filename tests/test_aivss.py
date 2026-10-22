@@ -1171,3 +1171,64 @@ class TestEndToEnd:
         validate_report(report)
         assert report["scores"]["cvss_bte"] == EXAMPLE_CVSS_BTE
         assert report["scores"]["aivss"] == EXAMPLE_AIVSS
+
+
+from aivss_calc.api import profile_report  # noqa: E402
+
+
+class TestReviewRevision:
+    """Behavior added in calculator 1.2.0 (review revision of the specification)."""
+
+    def test_official_asi_names(self):
+        assert ASI_TOP_10 == {
+            "ASI01": "Agent Goal Hijack",
+            "ASI02": "Tool Misuse & Exploitation",
+            "ASI03": "Agent Identity & Privilege Abuse",
+            "ASI04": "Agentic Supply Chain Compromise",
+            "ASI05": "Unexpected Code Execution",
+            "ASI06": "Memory & Context Poisoning",
+            "ASI07": "Insecure Inter-Agent Communication",
+            "ASI08": "Cascading Agent Failures",
+            "ASI09": "Human-Agent Trust Exploitation",
+            "ASI10": "Rogue Agents",
+        }
+
+    def test_ten_core_risks_resolve_under_published_names(self):
+        published = {
+            "Agentic AI Tool Misuse": "ASI02",
+            "Agent Access Control Violation": "ASI03",
+            "Agent Cascading Failures": "ASI08",
+            "Agent Orchestration & Multi-Agent Exploitation": "ASI07",
+            "Agent Identity Impersonation": "ASI03",
+            "Agent Memory & Context Manipulation": "ASI06",
+            "Insecure Agent Critical Systems Interaction": "ASI05",
+            "Agent Supply Chain & Dependency Risk": "ASI04",
+            "Agent Goal & Instruction Manipulation": "ASI01",
+        }
+        for name, asi in published.items():
+            assert normalize_asi(name) == asi
+        assert V08_CATEGORY_CROSSWALK["Agent Untraceability"] is None
+
+    def test_effect_class_range_without_unknowns_is_exact(self):
+        p = profile(lc="D", cp="C", ap="N", sr="R", es="M")
+        assert p.effect_class_range() == (p.effect_class(), p.effect_class())
+
+    def test_effect_class_range_with_unknown_sr(self):
+        p = profile(lc="D", cp="N", ap="N", sr="X", es="M")
+        assert p.effect_class() == "A1"
+        assert p.effect_class_range() == ("A1", "A2")
+
+    def test_effect_class_range_all_unknown(self):
+        p = profile(lc="X", cp="X", ap="X", sr="X", es="X")
+        assert p.effect_class() == "AX"
+        assert p.effect_class_range() == ("A0", "A2")
+
+    def test_profile_report_publishes_cvss_score_and_range(self):
+        result = profile_report(
+            "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:H/VI:L/VA:N/SC:H/SI:N/SA:N/E:U",
+            profile(lc="I", cp="N", ap="N", sr="P", es="M"),
+        )
+        assert result["cvss_score"] == result["cvss_bte"] == 6.4
+        assert result["agentic_effect_class"] == "A1"
+        assert result["aivss"] == 7.5
+        assert result["aivss_min"] == result["aivss_max"] == 7.5

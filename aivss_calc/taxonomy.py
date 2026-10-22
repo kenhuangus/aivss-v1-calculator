@@ -13,12 +13,12 @@ from typing import Any
 ASI_TOP_10: dict[str, str] = {
     "ASI01": "Agent Goal Hijack",
     "ASI02": "Tool Misuse & Exploitation",
-    "ASI03": "Identity & Privilege Abuse",
-    "ASI04": "Agentic Supply Chain Vulnerabilities",
+    "ASI03": "Agent Identity & Privilege Abuse",
+    "ASI04": "Agentic Supply Chain Compromise",
     "ASI05": "Unexpected Code Execution",
     "ASI06": "Memory & Context Poisoning",
     "ASI07": "Insecure Inter-Agent Communication",
-    "ASI08": "Cascading Failures",
+    "ASI08": "Cascading Agent Failures",
     "ASI09": "Human-Agent Trust Exploitation",
     "ASI10": "Rogue Agents",
 }
@@ -26,9 +26,12 @@ ASI_TOP_10: dict[str, str] = {
 MAESTRO_EXTENDED_ID = "MAESTRO-EXTENDED"
 MAESTRO_EXTENDED_NAME = "MAESTRO-extended finding"
 
-# Crosswalk from the withdrawn AIVSS v0.8 category list. ASI09 and ASI10 have no
-# v0.8 predecessor. "Agent Untraceability" has no ASI successor in OWASP Top 10;
-# AIVSS records that concern as mandatory agent_untraceability report metadata.
+# Crosswalk from the ten AIVSS Core Risks (v0.5, carried into the withdrawn v0.8
+# list). ASI09 and ASI10 have no Core Risk predecessor. "Agent Untraceability"
+# has no dedicated ASI category (OWASP Appendix A relates it to ASI09); AIVSS
+# records that concern as mandatory agent_untraceability report metadata. The
+# "&" spellings are the published Core Risk names; the "and" spellings are kept
+# as aliases.
 V08_CATEGORY_CROSSWALK: dict[str, str | None] = {
     "Agent Goal and Instruction Manipulation": "ASI01",
     "Agentic AI Tool Misuse": "ASI02",
@@ -40,6 +43,10 @@ V08_CATEGORY_CROSSWALK: dict[str, str | None] = {
     "Agent Orchestration and Multi-Agent Exploitation": "ASI07",
     "Agent Cascading Failures": "ASI08",
     "Agent Untraceability": None,
+    "Agent Goal & Instruction Manipulation": "ASI01",
+    "Agent Orchestration & Multi-Agent Exploitation": "ASI07",
+    "Agent Memory & Context Manipulation": "ASI06",
+    "Agent Supply Chain & Dependency Risk": "ASI04",
 }
 
 MAESTRO_LAYERS: frozenset[str] = frozenset(

@@ -31,7 +31,7 @@ exploitation, or optimal remediation decisions.
 
 https://github.com/kenhuangus/aivss-v1-candidate
 
-The reference calculator (`aivss-calc` 1.1.0) implements Conformance Level 1
+The reference calculator (`aivss-calc` 1.2.0) implements Conformance Level 1
 and 2 assessment mechanics of the AIVSS 1.0 specification: E resolution, the
 five-metric Agentic AI Profile, the Effect Class ladder, Lookup Tables U and
 AIVSS, agent untraceability metadata, ASI and MAESTRO-extended taxonomy, and
@@ -147,7 +147,12 @@ that the vector itself cannot show. Under this exception, calculator and rubric
 specification: they replace the draft eight-metric vector with the five-metric
 form and add the Table 5 and Table 6 lookups. Draft vectors are converted with
 `aivss-calc migrate-vector`. The major-version rules apply in full once the
-specification leaves candidate status.
+specification leaves candidate status. Calculator and rubric 1.2.0 follow the
+review revision of the specification: they add the observed Effect Class range
+(`agentic_effect_class_min`, `agentic_effect_class_max`, `aivss_min`,
+`aivss_max`), the `cvss_score` field (`cvss_bte` stays as a deprecated alias for
+one release), the Context Persistence clarification, and the label that the SR
+thresholds are proposed defaults.
 
 ## Reproducibility checklist
 
