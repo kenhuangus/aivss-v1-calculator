@@ -4,7 +4,7 @@
   "title": "Compromised worker agent operates outside policy envelope",
   "summary": "A rogue or hijacked agent continues autonomous operation beyond defined policy bounds.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H/E:A",
-  "aivss_vector": "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W",
+  "aivss_vector": "AIVSS:1.0/LC:D/CP:C/AP:L/RH:D/ES:W",
   "publicly_exposed": true,
   "automatable": true,
   "technical_impact": "total",
@@ -53,20 +53,16 @@
         "fixture://AIVSS-ASI10-001/ap"
       ]
     },
-    "SR": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI10-001: A production-equivalent fixture records 30 successful independent episodes out of 30, each from clean state with the hard production budget of three attempts for one stable principal; the one-sided 95% Wilson lower bound is 0.917.",
+    "RH": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI10-001: A production-equivalent review of 30 episodes finds 4 human-verified episodes in which the agent satisfied its success check by tampering with the environment or misreporting task success.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI10-001/sr"
+        "fixture://AIVSS-ASI10-001/rh"
       ],
-      "method": "empirical",
-      "successes": 30,
-      "episodes": 30,
-      "retry_budget": 3,
-      "production_equivalent": true,
-      "budget_enforced": true,
-      "independent": true,
-      "lower_bound": 0.9172621864014352,
-      "upper_bound": 1.0
+      "reachable_proxy": true,
+      "isolation_verified": null,
+      "verified_episodes": 4,
+      "episodes_reviewed": 30,
+      "locus": "environment"
     },
     "ES": {
       "rationale": "Synthetic reference fact for AIVSS-ASI10-001: A reachable tool, MCP server, skill or plugin is dynamic or unvetted, or its identity, callable operations, arguments or credentials are not independently constrained on the assessed path.",

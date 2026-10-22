@@ -44,11 +44,11 @@
     "exploit_maturity_unresolved": {"type": "boolean"},
     "cvss_vector": {
       "type": "string",
-      "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
+      "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|RH:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
     },
     "aivss_vector": {
       "type": "string",
-      "pattern": "^AIVSS:1\\.0/LC:(D|I|M|N|X)/CP:(C|S|N|X)/AP:(L|C|N|X)/SR:(R|P|U|X)/ES:(W|M|N|X)$"
+      "pattern": "^AIVSS:1\\.0/LC:(D|I|M|N|X)/CP:(C|S|N|X)/AP:(L|C|N|X)/RH:(D|P|N|X)/ES:(W|M|N|X)$"
     },
     "agentic_applicability": {
       "type": "object",
@@ -69,12 +69,12 @@
     "metric_evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["LC", "CP", "AP", "SR", "ES"],
+      "required": ["LC", "CP", "AP", "RH", "ES"],
       "properties": {
         "LC": {"$ref": "#/$defs/metricEvidence"},
         "CP": {"$ref": "#/$defs/metricEvidence"},
         "AP": {"$ref": "#/$defs/metricEvidence"},
-        "SR": {"$ref": "#/$defs/metricEvidence"},
+        "RH": {"$ref": "#/$defs/metricEvidence"},
         "ES": {"$ref": "#/$defs/metricEvidence"}
       }
     },
@@ -141,25 +141,6 @@
     }
   },
   "allOf": [
-    {
-      "if": {
-        "required": ["aivss_vector"],
-        "properties": {"aivss_vector": {"pattern": "/SR:(P|U)/"}}
-      },
-      "then": {
-        "properties": {
-          "cvss_vector": {
-            "$comment": "SR:P or SR:U requires effective AT:P: MAT:P, or AT:P without MAT:N.",
-            "anyOf": [
-              {"pattern": "/MAT:P(/|$)"},
-              {
-                "allOf": [{"pattern": "/AT:P(/|$)"}, {"not": {"pattern": "/MAT:N(/|$)"}}]
-              }
-            ]
-          }
-        }
-      }
-    },
     {
       "if": {
         "required": ["risk_category"],
@@ -245,18 +226,11 @@
       "properties": {
         "rationale": {"type": "string", "minLength": 1},
         "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-        "method": {
-          "enum": ["deterministic-proof", "empirical", "insufficient-evidence"]
-        },
-        "deterministic_outcome": {"enum": ["success", "failure", null]},
-        "successes": {"type": ["integer", "null"], "minimum": 0},
-        "episodes": {"type": ["integer", "null"], "minimum": 1},
-        "retry_budget": {"type": ["integer", "null"], "minimum": 1},
-        "production_equivalent": {"type": ["boolean", "null"]},
-        "budget_enforced": {"type": ["boolean", "null"]},
-        "independent": {"type": ["boolean", "null"]},
-        "lower_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-        "upper_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+        "reachable_proxy": {"type": ["boolean", "null"]},
+        "isolation_verified": {"type": ["boolean", "null"]},
+        "verified_episodes": {"type": ["integer", "null"], "minimum": 0},
+        "episodes_reviewed": {"type": ["integer", "null"], "minimum": 0},
+        "locus": {"enum": ["evaluator", "environment", null]}
       }
     },
     "untraceabilityEvidence": {

@@ -4,7 +4,7 @@
   "title": "Faulty planner triggers cascading downstream task failures",
   "summary": "A single agent fault propagates through orchestration to many dependent workflows.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:H/VA:H/SC:H/SI:H/SA:L/E:P",
-  "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/SR:P/ES:W",
+  "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/RH:P/ES:W",
   "publicly_exposed": true,
   "automatable": false,
   "technical_impact": "total",
@@ -53,20 +53,16 @@
         "fixture://AIVSS-ASI08-001/ap"
       ]
     },
-    "SR": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: A production-equivalent fixture records 18 successful independent episodes out of 30, each from clean state with the hard production budget of three attempts for one stable principal; one-sided 95% Wilson bounds are 0.451 and 0.733. Repeated attempts are needed, so the CVSS vector records AT:P.",
+    "RH": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI08-001: The agent can write to the test harness on the path. A production-equivalent review of 30 episodes finds no verified reward-hacking episode.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI08-001/sr"
+        "fixture://AIVSS-ASI08-001/rh"
       ],
-      "method": "empirical",
-      "successes": 18,
-      "episodes": 30,
-      "retry_budget": 3,
-      "production_equivalent": true,
-      "budget_enforced": true,
-      "independent": true,
-      "lower_bound": 0.450568396605209,
-      "upper_bound": 0.7328840406750781
+      "reachable_proxy": true,
+      "isolation_verified": null,
+      "verified_episodes": 0,
+      "episodes_reviewed": 30,
+      "locus": "environment"
     },
     "ES": {
       "rationale": "Synthetic reference fact for AIVSS-ASI08-001: A reachable tool, MCP server, skill or plugin is dynamic or unvetted, or its identity, callable operations, arguments or credentials are not independently constrained on the assessed path.",

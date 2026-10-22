@@ -517,7 +517,7 @@
     const provisional = $("result-provisional");
     provisional.hidden = !p.provisional;
     provisional.textContent = p.provisional
-      ? "Provisional: at least one of LC, CP, AP or SR is X (insufficient evidence). Resolve it before publishing."
+      ? "Provisional: at least one of LC, CP, AP or RH is X (insufficient evidence). Resolve it before publishing."
       : "";
     const migration = $("result-migration");
     migration.hidden = !p.migration;
