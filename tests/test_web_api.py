@@ -30,7 +30,6 @@ def _decision_request(scenario: dict) -> dict:
         "automatable": scenario["automatable"],
         "technical_impact": scenario["technical_impact"],
         "evidence": scenario["evidence"],
-        "agent_untraceability": scenario["agent_untraceability"],
     }
 
 
@@ -100,10 +99,6 @@ def test_web_calculate_matches_dashboard_for_every_scenario():
         assert decision["bod_2604_analogy_timeline"] == row["bod_timeline"]
         assert decision["aivss_recommended_timeline"] == row["aivss_recommended_timeline"]
         assert decision["escalated"] == row["escalated"]
-        assert (
-            decision["decision_points"]["agent_untraceability"]
-            == row["agent_untraceability"]
-        )
 
 
 def test_web_calculate_without_decision():
@@ -204,9 +199,6 @@ def test_catalog_covers_form_and_presets():
     assert list(catalog["metric_names"]) == ["LC", "CP", "AP", "RH", "ES"]
     assert catalog["rubric"]["classifying_metrics"] == ["LC", "CP", "AP", "RH"]
     assert catalog["rubric"]["uplift_metrics"] == ["ES"]
-    assert set(catalog["decision_inputs"]["agent_untraceability"]["values"]) == {
-        "High", "Moderate", "Low", "X",
-    }
     assert set(catalog["metric_names"]) == set(catalog["rubric"]["metrics"])
     assert list(catalog["cvss_metrics"]["base"]) == [
         "AV", "AC", "AT", "PR", "UI", "VC", "VI", "VA", "SC", "SI", "SA",
@@ -237,42 +229,8 @@ def test_web_converts_legacy_vector_and_reports_migration():
     assert response["ok"], response
     profile = response["result"]["profile"]
     assert profile["aivss_vector"] == "AIVSS:1.0/LC:D/CP:C/AP:L/RH:X/ES:W"
-    assert profile["migration"]["dropped"] == {"SR": "R", "PT": "H", "CA": "M"}
-    decision = response["result"]["decision"]
-    assert decision["decision_points"]["agent_untraceability"] == "High"
-
-
-def test_web_echoes_untraceability_without_a_decision():
-    scenario = SCENARIOS[0]
-    response = _call(
-        {
-            "op": "calculate",
-            "cvss_vector": scenario["cvss_vector"],
-            "aivss_vector": scenario["aivss_vector"],
-            "agent_untraceability": "Low",
-            "decision": None,
-        }
-    )
-    assert response["ok"], response
-    assert response["result"]["agent_untraceability"] == "Low"
-    assert "decision" not in response["result"]
-
-
-def test_web_records_top_level_untraceability_in_decision():
-    scenario = SCENARIOS[0]
-    decision = _decision_request(scenario)
-    del decision["agent_untraceability"]
-    response = _call(
-        {
-            "op": "calculate",
-            "cvss_vector": scenario["cvss_vector"],
-            "aivss_vector": scenario["aivss_vector"],
-            "agent_untraceability": "Moderate",
-            "decision": decision,
-        }
-    )
-    points = response["result"]["decision"]["decision_points"]
-    assert points["agent_untraceability"] == "Moderate"
+    assert profile["migration"]["dropped"] == {"SR": "R", "PT": "H", "CA": "M", "TD": "H"}
+    assert "agent_untraceability" not in profile["migration"]
 
 
 @pytest.mark.parametrize(
@@ -280,7 +238,6 @@ def test_web_records_top_level_untraceability_in_decision():
     [
         ("aivss_vector", None, "must be a string"),
         ("aivss_vector", 7, "must be a string"),
-        ("agent_untraceability", "H", "agent_untraceability must be"),
     ],
 )
 def test_web_rejects_malformed_fields_with_an_error_response(field, value, message):
@@ -312,7 +269,7 @@ def test_web_reports_migration_for_client_side_conversion():
     assert response["ok"], response
     migration = response["result"]["profile"]["migration"]
     assert migration["aivss_vector"] == CONVERTED
-    assert migration["dropped"] == {"SR": "R", "PT": "H", "CA": "M"}
+    assert migration["dropped"] == {"SR": "R", "PT": "H", "CA": "M", "TD": "H"}
 
 
 def test_web_omits_migration_once_metrics_are_edited():

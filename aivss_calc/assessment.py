@@ -13,11 +13,9 @@ from .ai_metrics import (
     AGENTIC_EFFECT_CLASS_LABELS,
     AIProfile,
     EFFECT_CLASS_STATUS,
-    UNTRACEABILITY_DEFINITIONS,
     parse_aivss_vector,
     split_ai_vector,
     validate_metric_evidence,
-    validate_untraceability,
 )
 from .cvss_score import score_cvss_bte
 from .lookup import AIVSS_BASIS, aivss_lookup, cvss_nomenclature
@@ -104,7 +102,6 @@ class Assessment:
     ai_profile: AIProfile | None = None
     agentic_applicability: dict[str, Any] = field(default_factory=dict)
     metric_evidence: dict[str, dict[str, Any]] = field(default_factory=dict)
-    agent_untraceability: dict[str, Any] | None = None
     path_id: str | None = None
     evidence: ExploitationEvidence = field(default_factory=ExploitationEvidence)
     org_context: OrgContext | None = None
@@ -137,11 +134,6 @@ def assessment_from_payload(payload: dict[str, Any]) -> Assessment:
         asi_category=payload["risk_category"],
         agentic_applicability=dict(payload["agentic_applicability"]),
         metric_evidence=dict(payload.get("metric_evidence") or {}),
-        agent_untraceability=(
-            dict(payload["agent_untraceability"])
-            if payload.get("agent_untraceability") is not None
-            else None
-        ),
         evidence=ExploitationEvidence(**dict(payload.get("evidence", {}))),
         org_context=OrgContext(**org) if org else None,
         provenance=Provenance(**dict(payload.get("provenance", {}))),
@@ -169,8 +161,8 @@ def assess(a: Assessment) -> dict[str, Any]:
     """Produce a schema-conforming AIVSS 1.0 report for one exploit path.
 
     Conformance Level 1 requires the Agentic AI Profile (LC, CP, AP, RH, ES)
-    and agent untraceability metadata, and resolves Exploit Maturity (E) from
-    the evidence ladder before CVSS-BTE scoring. AIVSS is read from Lookup
+    and resolves Exploit Maturity (E) from the evidence ladder before CVSS-BTE
+    scoring. AIVSS is read from Lookup
     Table AIVSS (Table 6) and is never lower than CVSS-BTE.
     """
     if not isinstance(a.finding_id, str) or not a.finding_id.strip():
@@ -252,12 +244,6 @@ def assess(a: Assessment) -> dict[str, Any]:
             "(aivss_vector or ai_profile with LC, CP, AP, RH and ES)"
         )
     validate_metric_evidence(profile, a.metric_evidence)
-    if a.agent_untraceability is None:
-        raise ValueError(
-            "agent_untraceability is mandatory report metadata; record the "
-            "retrieval-exercise observations (use false/null when not tested)"
-        )
-    untraceability = validate_untraceability(a.agent_untraceability)
     if a.provenance.assessed_at is None:
         raise ValueError(
             "provenance.assessed_at is required as an RFC 3339 evidence timestamp"
@@ -287,7 +273,7 @@ def assess(a: Assessment) -> dict[str, Any]:
         "report_schema_version": REPORT_SCHEMA_VERSION,
         "rubric_version": RUBRIC_VERSION,
         "calculator_version": CALCULATOR_VERSION,
-        "specification_status": "candidate",
+        "specification_status": "v1",
         "finding_id": a.finding_id,
         "path_id": a.path_id,
         "risk_category": risk_category,
@@ -326,11 +312,6 @@ def assess(a: Assessment) -> dict[str, Any]:
             "agentic_uplift_u": uplift,
             "agentic_effect_class_min": class_min,
             "agentic_effect_class_max": class_max,
-        },
-        "agent_untraceability": {
-            "value": untraceability,
-            "definition": UNTRACEABILITY_DEFINITIONS[untraceability],
-            "evidence": dict(a.agent_untraceability),
         },
         "scores": {
             "cvss_score": cvss_bte,
@@ -375,7 +356,6 @@ def assess(a: Assessment) -> dict[str, Any]:
             publicly_exposed_source=publicly_exposed_source,
             decision_data_observed_at=a.decision_data_observed_at,
             agentic_effect_class=ai_class,
-            agent_untraceability=untraceability,
             automatable=a.automatable,
             technical_impact=a.technical_impact,
             cve_id=a.cve_id,

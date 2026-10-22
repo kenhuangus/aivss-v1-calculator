@@ -38,7 +38,6 @@ def _top10_payload() -> list[dict]:
                 "agentic_uplift_u": scores["agentic_uplift_u"],
                 "status": scores["status"],
                 "agentic_effect_class": report["agentic_ai_profile"]["agentic_effect_class"],
-                "agent_untraceability": report["agent_untraceability"]["value"],
                 "decision_basis": decision.get("decision_basis"),
                 "ssvc": decision.get("ssvc"),
                 "bod_timeline": (

@@ -6,7 +6,7 @@ publishes three of the four variables for every CVE ID through the Vulnrichment
 Program; the fourth (asset exposure) is supplied by the asset owner.
 
 For a CVE, the unmodified BOD result is reported separately from the
-non-binding AIVSS candidate overlay. For a non-CVE finding, the same table may
+non-binding AIVSS overlay. For a non-CVE finding, the same table may
 be used only as an explicitly labelled analogy and never as a compliance result.
 
 Timeline table transcribed from the CERT/CC SSVC "CISA BOD 26-04 Response Model"
@@ -229,7 +229,6 @@ def decide(
     publicly_exposed_source: str,
     decision_data_observed_at: str,
     agentic_effect_class: str = "A0",
-    agent_untraceability: str | None = None,
     automatable: bool | None = None,
     technical_impact: str | None = None,
     cve_id: str | None = None,
@@ -237,7 +236,7 @@ def decide(
     vulnrichment_automatable: bool | None = None,
     vulnrichment_technical_impact: str | None = None,
 ) -> dict[str, object]:
-    """Run BOD decision support plus the non-binding AIVSS candidate overlay.
+    """Run BOD decision support plus the non-binding AIVSS overlay.
 
     BOD defaults apply only to CVEs. Non-CVE findings require explicit analogy
     inputs; AIVSS never derives BOD decision points from RH or CVSS.
@@ -314,8 +313,6 @@ def decide(
         )
     if agentic_effect_class not in ("A0", "A1", "A2", "AX"):
         raise ValueError("agentic_effect_class must be A0, A1, A2, or AX")
-    if agent_untraceability not in ("High", "Moderate", "Low", "X", None):
-        raise ValueError("agent_untraceability must be High, Moderate, Low, X, or omitted")
     if (
         automatable is not None
         and vulnrichment_automatable is not None
@@ -395,8 +392,7 @@ def decide(
     )
     # AIVSS overlay (organizational, categorical): Effect Class A2 advances the
     # recommendation one tier; it never creates or shortens 3DF. An AX class
-    # cannot trigger it and marks the recommendation provisional. Agent
-    # untraceability is recorded only; it never changes a timeline.
+    # cannot trigger it and marks the recommendation provisional.
     overlay_triggered = agentic_effect_class == "A2"
     recommended = advance_timeline(base, 1 if overlay_triggered else 0)
     overlay_status = (
@@ -424,8 +420,7 @@ def decide(
             "decision_point_namespaces": dict(SSVC_DECISION_POINTS),
             "extension_note": (
                 "Agentic AI Effect Class is a transparent fifth SSVC extension "
-                "input; agent untraceability is recorded but does not modify the "
-                "BOD outcome."
+                "input."
             ),
         },
         "bod_2604_model_version": BOD_2604_MODEL_VERSION,
@@ -444,7 +439,6 @@ def decide(
             "technical_impact": technical_impact,
             "technical_impact_source": impact_source,
             "agentic_effect_class": agentic_effect_class,
-            "agent_untraceability": agent_untraceability,
         },
         "aivss_recommended_timeline": recommended,
         "aivss_recommended_label": TIMELINE_LABELS[recommended],
@@ -464,7 +458,7 @@ def decide(
                 "forensic_triage_required": base == "3DF",
                 "note": (
                     "bod_2604_timeline is the unmodified compliance result. "
-                    "The AIVSS recommendation is a separate, non-binding candidate overlay."
+                    "The AIVSS recommendation is a separate, non-binding overlay."
                 ),
             }
         )

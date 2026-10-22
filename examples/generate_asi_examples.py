@@ -41,7 +41,6 @@ def main() -> None:
                 "aivss_band": report["scores"]["aivss_band"],
                 "agentic_uplift_u": report["scores"]["agentic_uplift_u"],
                 "status": report["scores"]["status"],
-                "agent_untraceability": report["agent_untraceability"]["value"],
                 "agentic_effect_class": report["agentic_ai_profile"][
                     "agentic_effect_class"
                 ],

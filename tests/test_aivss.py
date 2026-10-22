@@ -33,14 +33,11 @@ from aivss_calc.ai_metrics import (
     AGENTIC_METRIC_ORDER,
     AGENTIC_METRICS,
     CLASSIFYING_AGENTIC_METRICS,
-    UNTRACEABILITY_FIELDS,
     UPLIFT_AGENTIC_METRICS,
     UPLIFT_TABLE,
     classify_rh,
-    classify_untraceability,
     convert_legacy_vector,
     validate_metric_evidence,
-    validate_untraceability,
 )
 from aivss_calc.lookup import TABLE_6, aivss_lookup, cvss_nomenclature
 from aivss_calc.decision import TIMELINE_URGENCY, advance_timeline, decide, escalate
@@ -117,27 +114,6 @@ def metric_evidence(vector: str) -> dict[str, dict]:
 
 
 METRIC_EVIDENCE = metric_evidence(EXAMPLE_AI)
-
-UNTRACEABILITY_OBSERVATIONS = {
-    "High": (True, False, False, False, False, False),
-    "Moderate": (True, True, True, False, False, False),
-    "Low": (True, True, True, True, True, True),
-    "X": (False, None, None, None, None, None),
-}
-
-
-def untraceability(level: str = "High") -> dict:
-    record = {
-        "rationale": f"Test retrieval exercise recording {level} untraceability",
-        "evidence_refs": ["test://untraceability"],
-    }
-    record.update(
-        dict(zip(UNTRACEABILITY_FIELDS, UNTRACEABILITY_OBSERVATIONS[level], strict=True))
-    )
-    return record
-
-
-UNTRACEABILITY_HIGH = untraceability("High")
 
 
 def profile(**overrides: str) -> AIProfile:
@@ -315,21 +291,6 @@ class TestLookupTables:
         assert cvss_nomenclature(parse_cvss_vector(base + "/E:A/CR:H")) == "CVSS-BTE"
 
 
-class TestUntraceability:
-    @pytest.mark.parametrize("level", ["High", "Moderate", "Low", "X"])
-    def test_classification(self, level):
-        record = untraceability(level)
-        assert validate_untraceability(record) == level
-        observations = {key: record[key] for key in UNTRACEABILITY_FIELDS}
-        assert classify_untraceability(**observations) == level
-
-    def test_record_requires_all_observations(self):
-        record = untraceability("Low")
-        del record["retention_verified"]
-        with pytest.raises(ValueError, match="six"):
-            validate_untraceability(record)
-
-
 class TestRHClassification:
     def test_verified_episode_yields_demonstrated(self):
         assert (
@@ -458,8 +419,8 @@ class TestVectorParsing:
     def test_legacy_vector_conversion(self):
         result = convert_legacy_vector("AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H")
         assert result["aivss_vector"] == EXAMPLE_AI.replace("RH:N", "RH:X")
-        assert result["agent_untraceability"] == "High"
-        assert result["dropped"] == {"SR": "R", "PT": "H", "CA": "M"}
+        assert "agent_untraceability" not in result
+        assert result["dropped"] == {"SR": "R", "PT": "H", "CA": "M", "TD": "H"}
 
     @pytest.mark.parametrize("key", ["EQ", "U"])
     def test_derived_results_are_not_vector_metrics(self, key):
@@ -618,15 +579,14 @@ class TestBOD2604:
         assert escalate("FSU", "A2") == "60D"
         assert escalate("14D", "A2") == "3D"
 
-    def test_untraceability_does_not_escalate_timeline(self):
-        """Only A2 escalates; agent untraceability is metadata only."""
+    def test_only_a2_escalates_timeline(self):
+        """Only A2 escalates the recommended timeline."""
         assert advance_timeline("60D", 1) == "14D"
         result = decide(
             evidence=ExploitationEvidence(),
             publicly_exposed=False,
             **DECISION_CONTEXT,
             agentic_effect_class="A0",
-            agent_untraceability="High",
             automatable=False,
             technical_impact="partial",
         )
@@ -641,7 +601,6 @@ class TestBOD2604:
             publicly_exposed=False,
             **DECISION_CONTEXT,
             agentic_effect_class="A2",
-            agent_untraceability="High",
             automatable=False,
             technical_impact="partial",
         )
@@ -660,7 +619,6 @@ class TestBOD2604:
             vulnrichment_automatable=True,
             vulnrichment_technical_impact="total",
             agentic_effect_class="A2",
-            agent_untraceability="High",
         )
         assert result["bod_2604_timeline"] == "3DF"
         assert result["aivss_recommended_timeline"] == "3DF"
@@ -679,17 +637,6 @@ class TestBOD2604:
         assert result["overlay_status"] == "provisional"
         assert result["overlay_triggered"] is False
         assert result["aivss_recommended_timeline"] == result["bod_2604_analogy_timeline"]
-
-    def test_invalid_untraceability_rejected(self):
-        with pytest.raises(ValueError, match="agent_untraceability"):
-            decide(
-                evidence=ExploitationEvidence(),
-                publicly_exposed=True,
-                **DECISION_CONTEXT,
-                agent_untraceability="H",
-                automatable=True,
-                technical_impact="partial",
-            )
 
 
 class TestEvidenceLadder:
@@ -767,7 +714,6 @@ class TestEvidenceLadder:
             publicly_exposed=True,
             **DECISION_CONTEXT,
             agentic_effect_class="A0",
-            agent_untraceability="Moderate",
             cve_id="CVE-2024-0001",
         )
         assert result["missing_metadata_faq_applied"] is True
@@ -800,7 +746,6 @@ class TestEvidenceLadder:
             publicly_exposed=True,
             **DECISION_CONTEXT,
             agentic_effect_class="A0",
-            agent_untraceability="Moderate",
             cve_id="CVE-2024-0001",
             fceb_bod_2604_scope=True,
         )
@@ -836,7 +781,6 @@ class TestEvidenceLadder:
             publicly_exposed=False,
             **DECISION_CONTEXT,
             agentic_effect_class="A2",
-            agent_untraceability="Moderate",
             vulnrichment_automatable=False,
             vulnrichment_technical_impact="partial",
         )
@@ -855,7 +799,7 @@ class TestTaxonomy:
         assert normalize_asi("asi06") == "ASI06"
 
     def test_untraceability_has_no_asi_successor(self):
-        with pytest.raises(ValueError, match="agent_untraceability"):
+        with pytest.raises(ValueError, match="outside AIVSS 1.0"):
             normalize_asi("Agent Untraceability")
 
     def test_every_crosswalk_target_is_valid(self):
@@ -1013,7 +957,6 @@ class TestEndToEnd:
             asi_category="ASI06",
             agentic_applicability=dict(APPLICABILITY),
             metric_evidence=dict(METRIC_EVIDENCE),
-            agent_untraceability=dict(UNTRACEABILITY_HIGH),
             evidence=ExploitationEvidence(poc=True),
             publicly_exposed=True,
             publicly_exposed_source="test fixture",
@@ -1051,7 +994,6 @@ class TestEndToEnd:
         assert scores["agentic_uplift_u"] == 9
         assert scores["provisional"] is False
         assert scores["status"] == "normative"
-        assert report["agent_untraceability"]["value"] == "High"
 
     def test_vectors_are_separate(self):
         report = self._assessment()
@@ -1088,10 +1030,6 @@ class TestEndToEnd:
             assert report["agentic_ai_profile"]["agentic_effect_class"] == "A2"
             assert report["scores"]["agentic_uplift_u"] == 9
 
-    def test_missing_untraceability_is_rejected(self):
-        with pytest.raises(ValueError, match="agent_untraceability"):
-            self._assessment(agent_untraceability=None)
-
     def test_assess_without_profile_rejected(self):
         with pytest.raises(ValueError, match="Conformance Level 1 requires"):
             assess(
@@ -1116,7 +1054,6 @@ class TestEndToEnd:
                 asi_category="ASI06",
                 agentic_applicability=dict(APPLICABILITY),
                 metric_evidence=dict(METRIC_EVIDENCE),
-                agent_untraceability=dict(UNTRACEABILITY_HIGH),
                 evidence=ExploitationEvidence(poc=True),
                 include_decision=False,
                 provenance=Provenance(assessed_at="2026-08-27T00:00:00Z"),
@@ -1136,7 +1073,6 @@ class TestEndToEnd:
                 asi_category="ASI06",
                 agentic_applicability=dict(APPLICABILITY),
                 metric_evidence=dict(METRIC_EVIDENCE),
-                agent_untraceability=dict(UNTRACEABILITY_HIGH),
                 evidence=ExploitationEvidence(observed_local=True),
                 include_decision=False,
                 provenance=Provenance(assessed_at="2026-08-27T00:00:00Z"),
@@ -1160,7 +1096,6 @@ class TestEndToEnd:
                 },
                 agentic_applicability=dict(APPLICABILITY),
                 metric_evidence=dict(METRIC_EVIDENCE),
-                agent_untraceability=dict(UNTRACEABILITY_HIGH),
                 evidence=ExploitationEvidence(poc=True),
                 include_decision=False,
                 provenance=Provenance(assessed_at="2026-08-27T00:00:00Z"),
@@ -1185,7 +1120,6 @@ class TestEndToEnd:
                 asi_category="ASI06",
                 agentic_applicability=dict(APPLICABILITY),
                 metric_evidence=dict(METRIC_EVIDENCE),
-                agent_untraceability=dict(UNTRACEABILITY_HIGH),
                 include_decision=True,
                 automatable=False,
                 technical_impact="partial",

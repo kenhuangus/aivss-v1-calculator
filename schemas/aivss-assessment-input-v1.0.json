@@ -11,7 +11,6 @@
     "cvss_vector",
     "aivss_vector",
     "metric_evidence",
-    "agent_untraceability",
     "agentic_applicability",
     "provenance"
   ],
@@ -78,7 +77,6 @@
         "ES": {"$ref": "#/$defs/metricEvidence"}
       }
     },
-    "agent_untraceability": {"$ref": "#/$defs/untraceabilityEvidence"},
     "evidence": {
       "type": "object",
       "additionalProperties": false,
@@ -231,31 +229,6 @@
         "verified_episodes": {"type": ["integer", "null"], "minimum": 0},
         "episodes_reviewed": {"type": ["integer", "null"], "minimum": 0},
         "locus": {"enum": ["evaluator", "environment", null]}
-      }
-    },
-    "untraceabilityEvidence": {
-      "type": "object",
-      "description": "Agent untraceability retrieval-exercise record (High, Moderate, Low or X). A decision input; it is not part of the AIVSS vector or score.",
-      "additionalProperties": false,
-      "required": [
-        "rationale",
-        "evidence_refs",
-        "retrieval_tested",
-        "ordered_actions_reconstructable",
-        "affected_principals_bounded",
-        "required_fields_complete",
-        "integrity_protected",
-        "retention_verified"
-      ],
-      "properties": {
-        "rationale": {"type": "string", "minLength": 1},
-        "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-        "retrieval_tested": {"type": ["boolean", "null"]},
-        "ordered_actions_reconstructable": {"type": ["boolean", "null"]},
-        "affected_principals_bounded": {"type": ["boolean", "null"]},
-        "required_fields_complete": {"type": ["boolean", "null"]},
-        "integrity_protected": {"type": ["boolean", "null"]},
-        "retention_verified": {"type": ["boolean", "null"]}
       }
     }
   }

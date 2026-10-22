@@ -3,7 +3,7 @@
 Published December 9, 2025 by the OWASP GenAI Security Project and used as the
 AIVSS finding taxonomy. Findings outside ASI01–ASI10 that are validated through
 CSA MAESTRO (or equivalent) are recorded as MAESTRO-extended (Section 5.7).
-OWASP does not endorse this AIVSS candidate.
+OWASP does not endorse AIVSS v1.
 """
 
 from __future__ import annotations
@@ -28,8 +28,7 @@ MAESTRO_EXTENDED_NAME = "MAESTRO-extended finding"
 
 # Crosswalk from the ten AIVSS Core Risks (v0.5, carried into the withdrawn v0.8
 # list). ASI09 and ASI10 have no Core Risk predecessor. "Agent Untraceability"
-# has no dedicated ASI category (OWASP Appendix A relates it to ASI09); AIVSS
-# records that concern as mandatory agent_untraceability report metadata. The
+# has no dedicated ASI category and is outside AIVSS 1.0 severity scoring. The
 # "&" spellings are the published Core Risk names; the "and" spellings are kept
 # as aliases.
 V08_CATEGORY_CROSSWALK: dict[str, str | None] = {
@@ -72,8 +71,8 @@ def normalize_asi(value: str) -> str:
         mapped = V08_CATEGORY_CROSSWALK[candidate]
         if mapped is None:
             raise ValueError(
-                f"v0.8 category {candidate!r} has no ASI equivalent. Record it as "
-                "mandatory agent_untraceability metadata (High, Moderate, Low or X)"
+                f"v0.8 category {candidate!r} has no ASI equivalent and is "
+                "outside AIVSS 1.0 severity scoring"
             )
         return mapped
     raise ValueError(

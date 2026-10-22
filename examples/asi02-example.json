@@ -11,18 +11,6 @@
   "evidence": {
     "poc": true
   },
-  "agent_untraceability": {
-    "rationale": "Synthetic reference fact for AIVSS-ASI02-001: A retrieval exercise verifies all required correlated, integrity-protected, and retained records.",
-    "evidence_refs": [
-      "fixture://AIVSS-ASI02-001/untraceability"
-    ],
-    "retrieval_tested": true,
-    "ordered_actions_reconstructable": true,
-    "affected_principals_bounded": true,
-    "required_fields_complete": true,
-    "integrity_protected": true,
-    "retention_verified": true
-  },
   "path_id": "AIVSS-ASI02-001-PATH-1",
   "agentic_applicability": {
     "model_directed_goal_pursuit": true,

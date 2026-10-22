@@ -21,8 +21,6 @@
     ["automatable is required", "Choose whether exploitation is automatable."],
     ["technical_impact is required", "Choose the technical impact."],
   ];
-  const UNTRACEABILITY = ["High", "Moderate", "Low", "X"];
-  const LEGACY_TD = { H: "High", M: "Moderate", L: "Low", X: "X" };
   const DECISION_KEYS = {
     publicly_exposed: "pe",
     automatable: "au",
@@ -36,7 +34,6 @@
     cvss: {},
     supplemental: [],
     aivss: {},
-    untraceability: null,
     legacyVector: null,
     decision: emptyDecision(),
     presetId: null,
@@ -128,14 +125,13 @@
       else state.supplemental.push(`${key}:${value}`);
     }
     // A draft eight-metric vector is mapped to the five-metric form: EX becomes
-    // ES, TD becomes agent untraceability, PT and CA are dropped.
+    // ES, and SR, PT, CA and TD are dropped.
     const parsed = Object.fromEntries(parseVector(aivssText, `AIVSS:${catalog.versions.spec}`));
     const legacy = ["EX", "PT", "CA", "TD"].some((key) => key in parsed);
     // Keep the draft vector so the engine can report the migration it implies.
     state.legacyVector = legacy ? aivssText.trim() : null;
     if (legacy) {
       if (parsed.EX && !parsed.ES) parsed.ES = parsed.EX;
-      if (parsed.TD && LEGACY_TD[parsed.TD]) state.untraceability = LEGACY_TD[parsed.TD];
     }
     state.aivss = Object.fromEntries(
       agenticOrder().filter((m) => parsed[m]).map((m) => [m, parsed[m]]),
@@ -145,7 +141,7 @@
   function missingMetrics() {
     const base = Object.keys(catalog.cvss_metrics.base).filter((m) => !state.cvss[m]);
     const aivss = agenticOrder().filter((m) => !state.aivss[m]);
-    return { base, aivss, untraceability: !state.untraceability };
+    return { base, aivss };
   }
 
   // ── Form rendering ──
@@ -217,24 +213,6 @@
     });
   }
 
-  function untraceabilityGroup() {
-    const info = catalog.decision_inputs.agent_untraceability;
-    const selected = state.untraceability;
-    const options = UNTRACEABILITY.map((value) =>
-      optionButton(value, value === "X" ? "X" : value[0], selected === value, info.values[value], () => {
-        state.untraceability = value;
-        changed();
-      }),
-    );
-    return metricGroup({
-      name: "Agent untraceability",
-      code: "UT",
-      summary: info.summary,
-      options,
-      description: selected ? info.values[selected] : "Not selected yet.",
-    });
-  }
-
   function subgroup(title, metrics, render) {
     return el(
       "div",
@@ -273,7 +251,6 @@
     );
     $("aivss-classifying").replaceChildren(...catalog.rubric.classifying_metrics.map(aivssGroup));
     $("aivss-uplift").replaceChildren(...catalog.rubric.uplift_metrics.map(aivssGroup));
-    $("untraceability").replaceChildren(untraceabilityGroup());
     renderDecisionForm();
     renderPresets();
     $("cvss-input").value = cvssVector();
@@ -359,7 +336,6 @@
     const preset = catalog.presets.find((p) => p.id === id);
     if (!preset) return;
     applyVectors(preset.cvss_vector, preset.aivss_vector);
-    state.untraceability = preset.agent_untraceability;
     const evidence = Object.keys(preset.evidence).find((k) => preset.evidence[k]) || "none";
     state.decision = {
       ...emptyDecision(),
@@ -383,7 +359,6 @@
     } else {
       params.set("cvss", cvssVector());
       params.set("aivss", aivssVector());
-      if (state.untraceability) params.set("ut", state.untraceability);
       const d = state.decision;
       if (d.enabled) {
         params.set("rt", "1");
@@ -407,14 +382,12 @@
       return true;
     }
     if (!params.get("cvss") || !params.get("aivss")) return false;
-    state.untraceability = null;
     try {
       applyVectors(params.get("cvss"), params.get("aivss"));
     } catch (err) {
       showError("vector-error", `Could not load vectors from the link: ${err.message}`);
       return false;
     }
-    if (UNTRACEABILITY.includes(params.get("ut"))) state.untraceability = params.get("ut");
     const d = emptyDecision();
     d.enabled = params.get("rt") === "1";
     for (const [key, short] of Object.entries(DECISION_KEYS)) {
@@ -468,7 +441,6 @@
     const problems = [];
     if (missing.base.length) problems.push(`CVSS Base metrics: ${missing.base.join(", ")}`);
     if (missing.aivss.length) problems.push(`Agentic AI metrics: ${missing.aivss.join(", ")}`);
-    if (missing.untraceability) problems.push("Agent untraceability (use X if no retrieval exercise was completed)");
     if (problems.length) {
       $("result").hidden = true;
       showError("result-error", `Select the remaining metrics — ${problems.join("; ")}.`);
@@ -479,7 +451,6 @@
       result = await window.AivssEngine.calculate({
         cvss_vector: cvssVector(),
         aivss_vector: aivssVector(),
-        agent_untraceability: state.untraceability,
         migrated_from: state.legacyVector,
         decision: decisionRequest(),
       });
@@ -513,7 +484,6 @@
     $("result-cvss").textContent = p.cvss_bte.toFixed(1);
     $("result-cvss-band").textContent = p.cvss_band;
     $("result-u").textContent = p.agentic_uplift_u ?? "—";
-    $("result-untraceability").textContent = state.untraceability ?? "—";
     const provisional = $("result-provisional");
     provisional.hidden = !p.provisional;
     provisional.textContent = p.provisional
@@ -672,8 +642,7 @@
     hint(".result-facts div:nth-child(1) dt", results.effect_class);
     hint(".result-facts div:nth-child(2) dt", results.cvss_bte);
     hint(".result-facts div:nth-child(3) dt", results.uplift);
-    hint(".result-facts div:nth-child(4) dt", inputs.agent_untraceability.summary);
-    hint(".result-facts div:nth-child(5) dt", results.macrovector);
+    hint(".result-facts div:nth-child(4) dt", results.macrovector);
     hint("#result-class", results.effect_class);
     hint("#result-macrovector", results.macrovector);
   }

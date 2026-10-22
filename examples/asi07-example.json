@@ -11,18 +11,6 @@
   "evidence": {
     "poc": true
   },
-  "agent_untraceability": {
-    "rationale": "Synthetic reference fact for AIVSS-ASI07-001: A retrieval test reconstructs ordered actions and principals but finds missing integrity or retention evidence.",
-    "evidence_refs": [
-      "fixture://AIVSS-ASI07-001/untraceability"
-    ],
-    "retrieval_tested": true,
-    "ordered_actions_reconstructable": true,
-    "affected_principals_bounded": true,
-    "required_fields_complete": false,
-    "integrity_protected": false,
-    "retention_verified": false
-  },
   "path_id": "AIVSS-ASI07-001-PATH-1",
   "agentic_applicability": {
     "model_directed_goal_pursuit": true,

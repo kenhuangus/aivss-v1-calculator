@@ -26,7 +26,7 @@ and score intact, records five categorical Agentic AI metrics in a separate
 extension vector, and reads the AIVSS score from published lookup tables. No
 arithmetic is performed on the agentic metrics.
 
-Status: **candidate**. The metric rubric, lookup tables and conformance rules
+Status: **v1**. The metric rubric, lookup tables and conformance rules
 are testable. The Table 6 cell values are policy settings that have not yet
 been validated against independently rated findings, and the remediation
 overlay and organization-local priority index are **not empirically
@@ -34,7 +34,7 @@ calibrated**; none of them may be presented as probabilities or regulatory
 requirements.
 The [extension manifest](aivss-extension.json) records
 `first_validation_status: not-submitted`; FIRST has not validated or endorsed
-this candidate.
+this extension.
 
 ## Model
 
@@ -62,8 +62,6 @@ Every assessment publishes four results for one exploit path:
 - Unknown evidence value: **X**; any X on LC, CP, AP or RH makes the result
   `provisional`
 - **RH (reward hacking)** records whether the agent's own optimization of a proxy objective, evaluator or verifier drives it across a security boundary; CVSS v4.0 has no equivalent metric
-- **Agent untraceability** (High, Moderate, Low or X) is mandatory report
-  metadata from a retrieval exercise; it is not part of the vector or the score
 - **Exploit Maturity (`E`):** resolved from the evidence ladder before CVSS-BTE scoring
 - **Taxonomy:** ASI01–ASI10, or `MAESTRO-EXTENDED` with layer/threat metadata
 - **Conformance Level 1** is the scored report; **Conformance Level 2** adds the
@@ -92,15 +90,15 @@ The reference calculator (`aivss-calc` 1.2.0) implements the AIVSS 1.0
 specification at Conformance Levels 1 and 2:
 
 1. Resolves Exploit Maturity (`E`) from the evidence ladder before severity
-2. Requires a complete five-metric Agentic AI Profile and an agent
-   untraceability record for every assessment, and validates the RH evidence
+2. Requires a complete five-metric Agentic AI Profile for every assessment and
+   validates the RH evidence
 3. Derives the Effect Class, U and AIVSS from the ladder and Tables 5 and 6
 4. Accepts ASI01–ASI10 and MAESTRO-extended taxonomy metadata
 5. Emits SSVC/BOD decision tracks at Conformance Level 2
 
 Draft eight-metric vectors (`.../EX:W/PT:H/CA:M/TD:H`) are rejected by the
-parser. Convert them with `aivss-calc migrate-vector`: EX becomes ES, TD
-becomes agent untraceability, and PT and CA are dropped.
+parser. Convert them with `aivss-calc migrate-vector`: EX becomes ES, and
+SR, PT, CA and TD are dropped.
 
 The `legacy` subcommand reproduces withdrawn v0.x uplift scores for migration
 comparison only and must not be used for AIVSS 1.0 compliance.
@@ -137,8 +135,8 @@ aivss-calc demo
 
 Launch **`aivss-calc demo`** and open http://127.0.0.1:8765/ to score a finding
 interactively: pick the CVSS v4.0 and Agentic AI metrics (or paste a vector
-pair, including a draft eight-metric vector, which is converted), record agent
-untraceability, and the page shows the AIVSS lookup score with its qualitative
+pair, including a draft eight-metric vector, which is converted), and the
+page shows the AIVSS lookup score with its qualitative
 rating, CVSS-BTE beside it, the Agentic Effect Class, U, the MacroVector, and,
 when enabled, the SSVC / BOD 26-04 remediation timeline with the A2 overlay. The ten OWASP Agentic Top 10
 reference scenarios are available as presets, and every result has a shareable
@@ -160,10 +158,10 @@ python examples/generate_asi_examples.py
 ```
 
 These are synthetic format and calculation fixtures, not incidents, an
-empirical validation corpus, or evidence that the candidate model predicts
+empirical validation corpus, or evidence that the model predicts
 outcomes. ASI category names come from the
 [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/);
-OWASP does not endorse this AIVSS candidate.
+OWASP does not endorse AIVSS v1.
 
 ## Presentation slides
 
