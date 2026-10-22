@@ -1221,12 +1221,12 @@ class TestReviewRevision:
         assert ASI_TOP_10 == {
             "ASI01": "Agent Goal Hijack",
             "ASI02": "Tool Misuse & Exploitation",
-            "ASI03": "Agent Identity & Privilege Abuse",
-            "ASI04": "Agentic Supply Chain Compromise",
+            "ASI03": "Identity & Privilege Abuse",
+            "ASI04": "Agentic Supply Chain Vulnerabilities",
             "ASI05": "Unexpected Code Execution",
             "ASI06": "Memory & Context Poisoning",
             "ASI07": "Insecure Inter-Agent Communication",
-            "ASI08": "Cascading Agent Failures",
+            "ASI08": "Cascading Failures",
             "ASI09": "Human-Agent Trust Exploitation",
             "ASI10": "Rogue Agents",
         }

@@ -49,7 +49,7 @@
   },
   {
     "asi": "ASI03",
-    "name": "Agent Identity & Privilege Abuse",
+    "name": "Identity & Privilege Abuse",
     "title": "Stolen service credential used for lateral agent actions",
     "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:H/VI:H/VA:H/SC:H/SI:H/SA:H/E:A",
     "aivss_vector": "AIVSS:1.0/LC:M/CP:N/AP:L/RH:N/ES:M",
@@ -73,7 +73,7 @@
   },
   {
     "asi": "ASI04",
-    "name": "Agentic Supply Chain Compromise",
+    "name": "Agentic Supply Chain Vulnerabilities",
     "title": "Compromised MCP plugin supplies malicious tool definitions",
     "cvss_vector": "CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:H/VA:N/SC:H/SI:L/SA:N/E:P",
     "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:L/RH:N/ES:W",
@@ -169,7 +169,7 @@
   },
   {
     "asi": "ASI08",
-    "name": "Cascading Agent Failures",
+    "name": "Cascading Failures",
     "title": "Faulty planner triggers cascading downstream task failures",
     "cvss_vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:H/VA:H/SC:H/SI:H/SA:L/E:P",
     "aivss_vector": "AIVSS:1.0/LC:I/CP:S/AP:L/RH:P/ES:W",
