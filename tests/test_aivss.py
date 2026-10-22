@@ -36,10 +36,10 @@ from aivss_calc.ai_metrics import (
     UNTRACEABILITY_FIELDS,
     UPLIFT_AGENTIC_METRICS,
     UPLIFT_TABLE,
-    check_sr_at,
-    classify_sr,
+    classify_rh,
     classify_untraceability,
     convert_legacy_vector,
+    validate_metric_evidence,
     validate_untraceability,
 )
 from aivss_calc.lookup import TABLE_6, aivss_lookup, cvss_nomenclature
@@ -56,7 +56,7 @@ SCHEMA = REPO / "schemas" / "aivss-report-v1.0.json"
 # CVSS-BTE 7.8 (interpolated), MacroVector ceiling 8.0.
 EXAMPLE_VECTOR = "CVSS:4.0/AV:N/AC:H/AT:N/PR:N/UI:N/VC:H/VI:L/VA:L/SC:H/SI:N/SA:N/E:P"
 EXAMPLE_CVSS_BTE = 7.8
-EXAMPLE_AI = "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
+EXAMPLE_AI = "AIVSS:1.0/LC:D/CP:C/AP:L/RH:N/ES:W"
 # Example is A2 (AP:L) in the High band, so Table 6 gives 9.5.
 EXAMPLE_AIVSS = 9.5
 EXAMPLE_FULL = f"{EXAMPLE_VECTOR} {EXAMPLE_AI}"
@@ -81,30 +81,38 @@ def metric_evidence(vector: str) -> dict[str, dict]:
         }
         for name in AGENTIC_METRIC_ORDER
     }
-    successes = {"R": 30, "P": 18, "U": 0}.get(assessed.sr)
-    if successes is None:
-        result["SR"]["method"] = "insufficient-evidence"
-    else:
-        classified = classify_sr(
-            successes=successes,
-            episodes=30,
-            production_equivalent=True,
-            budget_enforced=True,
-            independent=True,
-        )
-        result["SR"].update(
-            {
-                "method": "empirical",
-                "successes": successes,
-                "episodes": 30,
-                "retry_budget": 3,
-                "production_equivalent": True,
-                "budget_enforced": True,
-                "independent": True,
-                "lower_bound": classified.lower_bound,
-                "upper_bound": classified.upper_bound,
-            }
-        )
+    result["RH"].update(
+        {
+            "D": {
+                "reachable_proxy": True,
+                "isolation_verified": None,
+                "verified_episodes": 4,
+                "episodes_reviewed": 30,
+                "locus": "environment",
+            },
+            "P": {
+                "reachable_proxy": True,
+                "isolation_verified": None,
+                "verified_episodes": 0,
+                "episodes_reviewed": 30,
+                "locus": "environment",
+            },
+            "N": {
+                "reachable_proxy": False,
+                "isolation_verified": True,
+                "verified_episodes": None,
+                "episodes_reviewed": None,
+                "locus": None,
+            },
+            "X": {
+                "reachable_proxy": None,
+                "isolation_verified": None,
+                "verified_episodes": None,
+                "episodes_reviewed": None,
+                "locus": None,
+            },
+        }[assessed.rh]
+    )
     return result
 
 
@@ -137,7 +145,7 @@ def profile(**overrides: str) -> AIProfile:
         "lc": "N",
         "cp": "N",
         "ap": "N",
-        "sr": "U",
+        "rh": "N",
         "es": "N",
     }
     values.update(overrides)
@@ -173,7 +181,8 @@ class TestAIEffectClass:
             {"ap": "L"},
             {"lc": "D", "cp": "C"},
             {"lc": "I", "cp": "C"},
-            {"lc": "D", "sr": "R"},
+            {"lc": "D", "rh": "D"},
+            {"lc": "I", "rh": "D"},
         ],
     )
     def test_a2_conditions(self, kwargs):
@@ -182,17 +191,17 @@ class TestAIEffectClass:
     def test_es_does_not_change_effect_class(self):
         assert profile(lc="I", es="W").effect_class() == "A1"
         assert profile(es="W").effect_class() == "A0"
-        assert profile(sr="R", es="W").effect_class() == "A0"
+        assert profile(rh="P", es="W").effect_class() == "A0"
 
     @pytest.mark.parametrize(
         "kwargs",
-        [{"lc": "I"}, {"lc": "D"}, {"cp": "S"}, {"cp": "C"}, {"ap": "C"}],
+        [{"lc": "I"}, {"lc": "D"}, {"cp": "S"}, {"cp": "C"}, {"ap": "C"}, {"rh": "D"}],
     )
     def test_a1_conditions(self, kwargs):
         assert profile(**kwargs).effect_class() == "A1"
 
-    @pytest.mark.parametrize("kwargs", [{"lc": "M"}, {"sr": "R"}, {"lc": "M", "sr": "R"}])
-    def test_lc_m_and_sr_alone_do_not_trigger_a1(self, kwargs):
+    @pytest.mark.parametrize("kwargs", [{"lc": "M"}, {"rh": "P"}, {"lc": "M", "rh": "P"}])
+    def test_lc_m_and_rh_possible_alone_do_not_trigger_a1(self, kwargs):
         assert profile(**kwargs).effect_class() == "A0"
 
     def test_ladder_is_first_match(self):
@@ -208,20 +217,20 @@ class TestAIEffectClass:
         for lc in "DIMN":
             for cp in "CSN":
                 for ap in "LCN":
-                    for sr in "RPU":
-                        cls = profile(lc=lc, cp=cp, ap=ap, sr=sr).effect_class()
+                    for rh in "DPN":
+                        cls = profile(lc=lc, cp=cp, ap=ap, rh=rh).effect_class()
                         assert cls in ("A0", "A1", "A2")
 
     def test_class_is_monotone_in_each_metric(self):
         """Worsening any single metric must never lower the effect class."""
         order = {"A0": 0, "A1": 1, "A2": 2}
-        scales = {"lc": "NMID", "cp": "NSC", "ap": "NCL", "sr": "UPR"}
+        scales = {"lc": "NMID", "cp": "NSC", "ap": "NCL", "rh": "NPD"}
         for name, scale in scales.items():
             for lc in "DIMN":
                 for cp in "CSN":
                     for ap in "LCN":
-                        for sr in "RPU":
-                            base = {"lc": lc, "cp": cp, "ap": ap, "sr": sr}
+                        for rh in "DPN":
+                            base = {"lc": lc, "cp": cp, "ap": ap, "rh": rh}
                             for i in range(len(scale) - 1):
                                 lo = dict(base, **{name: scale[i]})
                                 hi = dict(base, **{name: scale[i + 1]})
@@ -239,10 +248,12 @@ class TestAIEffectClass:
         assert profile(lc="X").complete is False
         assert profile(lc="X").provisional is True
 
-    def test_unknown_sr_is_provisional_but_not_ax(self):
-        """SR enters only the A2 clause, so SR:X leaves the class but marks it provisional."""
-        assert profile(sr="X").effect_class() == "A0"
-        assert profile(sr="X").provisional is True
+    def test_unknown_rh_is_provisional_and_ax_when_nothing_else_applies(self):
+        """RH:X with no other agentic uplift is AX; with known uplift it stays put."""
+        assert profile(rh="X").effect_class() == "AX"
+        assert profile(rh="X").provisional is True
+        assert profile(lc="D", rh="X").effect_class() == "A1"
+        assert profile(lc="D", rh="X").provisional is True
         assert profile(es="X").provisional is False
         assert profile(es="X").complete is False
 
@@ -288,11 +299,11 @@ class TestLookupTables:
         assert UPLIFT_TABLE == {
             "A0": {"N": 0, "M": 1, "W": 2},
             "A1": {"N": 3, "M": 5, "W": 6},
-            "A2_not_R": {"N": 7, "M": 8, "W": 9},
-            "A2_R": {"N": 8, "M": 9, "W": 10},
+            "A2_not_RH": {"N": 7, "M": 8, "W": 9},
+            "A2_RH": {"N": 8, "M": 9, "W": 10},
         }
-        assert profile(ap="L", sr="R", es="W").agentic_uplift_u() == 10
-        assert profile(ap="L", sr="P", es="W").agentic_uplift_u() == 9
+        assert profile(ap="L", rh="D", es="W").agentic_uplift_u() == 10
+        assert profile(ap="L", rh="P", es="W").agentic_uplift_u() == 9
         assert profile(lc="X", es="M").agentic_uplift_u() == 1
         assert profile(es="X").agentic_uplift_u() is None
 
@@ -302,19 +313,6 @@ class TestLookupTables:
         assert cvss_nomenclature(parse_cvss_vector(base)) == "CVSS-B"
         assert cvss_nomenclature(parse_cvss_vector(base + "/CR:H")) == "CVSS-BE"
         assert cvss_nomenclature(parse_cvss_vector(base + "/E:A/CR:H")) == "CVSS-BTE"
-
-
-class TestSrAttackRequirements:
-    @pytest.mark.parametrize("sr", ["P", "U"])
-    def test_probabilistic_or_unreliable_requires_at_p(self, sr):
-        with pytest.raises(ValueError, match="AT:P"):
-            check_sr_at(sr, "N")
-        check_sr_at(sr, "P")
-
-    @pytest.mark.parametrize("sr", ["R", "X"])
-    def test_reliable_or_unknown_allows_either(self, sr):
-        check_sr_at(sr, "N")
-        check_sr_at(sr, "P")
 
 
 class TestUntraceability:
@@ -332,47 +330,95 @@ class TestUntraceability:
             validate_untraceability(record)
 
 
-class TestSRClassification:
-    def test_empirical_thresholds_are_reproducible(self):
-        controls = {
-            "production_equivalent": True,
-            "budget_enforced": True,
-            "independent": True,
-        }
-        reliable = classify_sr(successes=30, episodes=30, **controls)
-        probabilistic = classify_sr(successes=18, episodes=30, **controls)
-        unreliable = classify_sr(successes=0, episodes=30, **controls)
-        assert reliable.value == "R"
-        assert reliable.lower_bound == pytest.approx(0.917, abs=0.001)
-        assert probabilistic.value == "P"
-        assert unreliable.value == "U"
-        assert unreliable.upper_bound == pytest.approx(0.083, abs=0.001)
-
-    def test_insufficient_controls_or_sample_yield_unknown(self):
-        assert classify_sr(successes=29, episodes=29).value == "X"
+class TestRHClassification:
+    def test_verified_episode_yields_demonstrated(self):
         assert (
-            classify_sr(
-                successes=30,
-                episodes=30,
-                production_equivalent=True,
-                budget_enforced=True,
-                independent=False,
-            ).value
+            classify_rh(reachable_proxy=True, isolation_verified=None, verified_episodes=1)
+            == "D"
+        )
+
+    def test_unreachable_and_verified_isolation_yields_none(self):
+        assert (
+            classify_rh(reachable_proxy=False, isolation_verified=True, verified_episodes=None)
+            == "N"
+        )
+
+    def test_reachable_without_verified_episode_yields_possible(self):
+        assert (
+            classify_rh(reachable_proxy=True, isolation_verified=None, verified_episodes=0)
+            == "P"
+        )
+
+    def test_absence_of_observed_hacking_never_yields_none(self):
+        """Hacking rates vary with difficulty and prompting, so N needs isolation."""
+        assert (
+            classify_rh(reachable_proxy=True, isolation_verified=False, verified_episodes=0)
+            == "P"
+        )
+        assert (
+            classify_rh(reachable_proxy=None, isolation_verified=None, verified_episodes=0)
+            == "X"
+        )
+        assert (
+            classify_rh(reachable_proxy=False, isolation_verified=False, verified_episodes=0)
             == "X"
         )
 
-    def test_deterministic_proof_overrides_empirical_inputs(self):
-        assert classify_sr(deterministic_outcome="success").value == "R"
-        assert classify_sr(deterministic_outcome="failure").value == "U"
+    def test_unverified_unreachable_claim_is_unknown(self):
+        assert (
+            classify_rh(reachable_proxy=False, isolation_verified=None, verified_episodes=None)
+            == "X"
+        )
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"reachable_proxy": "yes", "isolation_verified": None, "verified_episodes": 0},
+            {"reachable_proxy": True, "isolation_verified": 1, "verified_episodes": 0},
+            {"reachable_proxy": True, "isolation_verified": None, "verified_episodes": -1},
+            {"reachable_proxy": True, "isolation_verified": None, "verified_episodes": True},
+        ],
+    )
+    def test_malformed_inputs_are_rejected(self, kwargs):
+        with pytest.raises(ValueError):
+            classify_rh(**kwargs)
+
+    def test_evidence_must_support_the_vector_value(self):
+        assessed = parse_aivss_vector(EXAMPLE_AI)
+        evidence = metric_evidence(EXAMPLE_AI)
+        validate_metric_evidence(assessed, evidence)
+        evidence["RH"]["verified_episodes"] = 2
+        evidence["RH"]["reachable_proxy"] = True
+        evidence["RH"]["locus"] = "environment"
+        with pytest.raises(ValueError, match="does not support"):
+            validate_metric_evidence(assessed, evidence)
+
+    def test_demonstrated_and_possible_evidence_must_name_a_locus(self):
+        assessed = parse_aivss_vector(EXAMPLE_AI.replace("RH:N", "RH:D"))
+        evidence = metric_evidence(EXAMPLE_AI.replace("RH:N", "RH:D"))
+        evidence["RH"]["locus"] = None
+        with pytest.raises(ValueError, match="locus"):
+            validate_metric_evidence(assessed, evidence)
+
+    def test_verified_episodes_cannot_exceed_reviewed(self):
+        assessed = parse_aivss_vector(EXAMPLE_AI.replace("RH:N", "RH:D"))
+        evidence = metric_evidence(EXAMPLE_AI.replace("RH:N", "RH:D"))
+        evidence["RH"]["episodes_reviewed"] = 3
+        with pytest.raises(ValueError, match="cannot exceed"):
+            validate_metric_evidence(assessed, evidence)
+
+    def test_retired_sr_metric_is_rejected_with_a_pointer_to_rh(self):
+        with pytest.raises(ValueError, match="replaced by RH"):
+            parse_aivss_vector("AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W")
 
 
 class TestMetricPartitions:
     """Five metrics with closed value sets — every code must be assignable."""
 
-    EXPECTED_COUNTS = {"LC": 5, "CP": 4, "AP": 4, "SR": 4, "ES": 4}
+    EXPECTED_COUNTS = {"LC": 5, "CP": 4, "AP": 4, "RH": 4, "ES": 4}
 
     def test_five_metrics_in_fixed_order(self):
-        assert AGENTIC_METRIC_ORDER == ("LC", "CP", "AP", "SR", "ES")
+        assert AGENTIC_METRIC_ORDER == ("LC", "CP", "AP", "RH", "ES")
 
     def test_classifying_and_uplift_partition_the_five(self):
         assert set(CLASSIFYING_AGENTIC_METRICS) | set(UPLIFT_AGENTIC_METRICS) == set(
@@ -411,9 +457,9 @@ class TestVectorParsing:
 
     def test_legacy_vector_conversion(self):
         result = convert_legacy_vector("AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H")
-        assert result["aivss_vector"] == EXAMPLE_AI
+        assert result["aivss_vector"] == EXAMPLE_AI.replace("RH:N", "RH:X")
         assert result["agent_untraceability"] == "High"
-        assert result["dropped"] == {"PT": "H", "CA": "M"}
+        assert result["dropped"] == {"SR": "R", "PT": "H", "CA": "M"}
 
     @pytest.mark.parametrize("key", ["EQ", "U"])
     def test_derived_results_are_not_vector_metrics(self, key):
@@ -422,11 +468,11 @@ class TestVectorParsing:
 
     def test_appended_ai_metrics_are_rejected(self):
         with pytest.raises(ValueError, match="separate"):
-            split_ai_vector(f"{EXAMPLE_VECTOR}/LC:D/CP:C/AP:L/SR:R")
+            split_ai_vector(f"{EXAMPLE_VECTOR}/LC:D/CP:C/AP:L/RH:N")
 
     def test_duplicate_ai_metric_rejected(self):
         with pytest.raises(ValueError, match="Duplicate AIVSS metric"):
-            parse_aivss_vector("AIVSS:1.0/LC:D/LC:I/CP:C/AP:L/SR:R/ES:W")
+            parse_aivss_vector("AIVSS:1.0/LC:D/LC:I/CP:C/AP:L/RH:N/ES:W")
 
     def test_wrong_extension_version_rejected(self):
         with pytest.raises(ValueError, match="must begin"):
@@ -1002,7 +1048,7 @@ class TestEndToEnd:
         assert scores["aivss"] == EXAMPLE_AIVSS
         assert scores["aivss_band"] == "Critical"
         assert scores["rule"] == "cell"
-        assert scores["agentic_uplift_u"] == 10
+        assert scores["agentic_uplift_u"] == 9
         assert scores["provisional"] is False
         assert scores["status"] == "normative"
         assert report["agent_untraceability"]["value"] == "High"
@@ -1014,41 +1060,33 @@ class TestEndToEnd:
         assert "vector" not in report
 
     def test_a0_is_value_based_not_presence_based(self):
-        benign = "AIVSS:1.0/LC:N/CP:N/AP:N/SR:R/ES:W"
+        benign = "AIVSS:1.0/LC:N/CP:N/AP:N/RH:N/ES:W"
         report = self._assessment(aivss_vector=benign)
         assert report["agentic_ai_profile"]["agentic_effect_class"] == "A0"
         assert report["scores"]["aivss"] == EXAMPLE_CVSS_BTE
         assert report["scores"]["rule"] == "cvss_bte_unchanged"
         assert report["scores"]["agentic_uplift_u"] == 2
 
-    def test_sr_probabilistic_with_at_n_is_rejected(self):
-        with pytest.raises(ValueError, match="AT:P"):
-            self._assessment(aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/SR:P/ES:W")
-
-    def test_sr_probabilistic_with_at_p_is_accepted(self):
-        report = self._assessment(
-            cvss_vector=EXAMPLE_VECTOR.replace("/AT:N/", "/AT:P/"),
-            aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/SR:P/ES:W",
-        )
+    def test_rh_demonstrated_with_direct_language_control_is_a2(self):
+        report = self._assessment(aivss_vector="AIVSS:1.0/LC:D/CP:N/AP:N/RH:D/ES:W")
         assert report["agentic_ai_profile"]["agentic_effect_class"] == "A2"
-        assert report["scores"]["agentic_uplift_u"] == 9
-
-    def test_sr_check_uses_effective_at_when_mat_is_present(self):
-        """MAT overrides AT, so MAT:P satisfies SR:P even with Base AT:N."""
-        report = self._assessment(
-            cvss_vector=f"{EXAMPLE_VECTOR}/MAT:P",
-            aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/SR:P/ES:W",
-        )
-        assert report["agentic_ai_profile"]["agentic_effect_class"] == "A2"
+        assert report["scores"]["agentic_uplift_u"] == 10
         validate_report(report)
 
-    def test_sr_check_rejects_mat_n_override(self):
-        """MAT:N removes the attack requirement, so SR:P is inconsistent."""
-        with pytest.raises(ValueError, match="AT:P"):
-            self._assessment(
-                cvss_vector=EXAMPLE_VECTOR.replace("/AT:N/", "/AT:P/") + "/MAT:N",
-                aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/SR:P/ES:W",
+    def test_rh_demonstrated_alone_is_a1_without_attacker_input(self):
+        report = self._assessment(aivss_vector="AIVSS:1.0/LC:N/CP:N/AP:N/RH:D/ES:M")
+        assert report["agentic_ai_profile"]["agentic_effect_class"] == "A1"
+        assert report["scores"]["agentic_uplift_u"] == 5
+        validate_report(report)
+
+    def test_rh_has_no_agreement_rule_with_cvss_attack_requirements(self):
+        for at in ("N", "P"):
+            report = self._assessment(
+                cvss_vector=EXAMPLE_VECTOR.replace("/AT:N/", f"/AT:{at}/"),
+                aivss_vector="AIVSS:1.0/LC:D/CP:C/AP:L/RH:P/ES:W",
             )
+            assert report["agentic_ai_profile"]["agentic_effect_class"] == "A2"
+            assert report["scores"]["agentic_uplift_u"] == 9
 
     def test_missing_untraceability_is_rejected(self):
         with pytest.raises(ValueError, match="agent_untraceability"):
@@ -1210,23 +1248,23 @@ class TestReviewRevision:
         assert V08_CATEGORY_CROSSWALK["Agent Untraceability"] is None
 
     def test_effect_class_range_without_unknowns_is_exact(self):
-        p = profile(lc="D", cp="C", ap="N", sr="R", es="M")
+        p = profile(lc="D", cp="C", ap="N", rh="D", es="M")
         assert p.effect_class_range() == (p.effect_class(), p.effect_class())
 
-    def test_effect_class_range_with_unknown_sr(self):
-        p = profile(lc="D", cp="N", ap="N", sr="X", es="M")
+    def test_effect_class_range_with_unknown_rh(self):
+        p = profile(lc="D", cp="N", ap="N", rh="X", es="M")
         assert p.effect_class() == "A1"
         assert p.effect_class_range() == ("A1", "A2")
 
     def test_effect_class_range_all_unknown(self):
-        p = profile(lc="X", cp="X", ap="X", sr="X", es="X")
+        p = profile(lc="X", cp="X", ap="X", rh="X", es="X")
         assert p.effect_class() == "AX"
         assert p.effect_class_range() == ("A0", "A2")
 
     def test_profile_report_publishes_cvss_score_and_range(self):
         result = profile_report(
             "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:H/VI:L/VA:N/SC:H/SI:N/SA:N/E:U",
-            profile(lc="I", cp="N", ap="N", sr="P", es="M"),
+            profile(lc="I", cp="N", ap="N", rh="P", es="M"),
         )
         assert result["cvss_score"] == result["cvss_bte"] == 6.4
         assert result["agentic_effect_class"] == "A1"
@@ -1236,7 +1274,7 @@ class TestReviewRevision:
     def test_profile_report_publishes_uncertain_range(self):
         result = profile_report(
             "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:H/VI:L/VA:N/SC:H/SI:N/SA:N/E:U",
-            profile(lc="D", cp="N", ap="N", sr="X", es="M"),
+            profile(lc="D", cp="N", ap="N", rh="X", es="M"),
         )
         assert result["agentic_effect_class"] == "A1"
         assert result["agentic_effect_class_min"] == "A1"

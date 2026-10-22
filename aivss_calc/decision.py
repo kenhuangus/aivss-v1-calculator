@@ -240,7 +240,7 @@ def decide(
     """Run BOD decision support plus the non-binding AIVSS candidate overlay.
 
     BOD defaults apply only to CVEs. Non-CVE findings require explicit analogy
-    inputs; AIVSS never derives BOD decision points from SR or CVSS.
+    inputs; AIVSS never derives BOD decision points from RH or CVSS.
     """
     resolved = evidence.resolve()
 
@@ -358,7 +358,7 @@ def decide(
     else:
         raise ValueError(
             "automatable is required for a non-CVE BOD-table analogy; "
-            "it is not derived from SR"
+            "it is not derived from RH"
         )
 
     if vulnrichment_technical_impact is not None:

@@ -105,7 +105,7 @@
       "properties": {
         "vector": {
           "type": "string",
-          "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
+          "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|RH:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
         },
         "macrovector": {"type": "string", "pattern": "^[0-2]{6}$"},
         "cvss_score": {"$ref": "#/$defs/score"},
@@ -136,7 +136,7 @@
             "epss_date": {"type": ["string", "null"], "minLength": 1},
             "input_vector": {
               "type": "string",
-              "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
+              "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|RH:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
             }
           }
         }
@@ -149,18 +149,11 @@
       "properties": {
         "rationale": {"type": "string", "minLength": 1},
         "evidence_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-        "method": {
-          "enum": ["deterministic-proof", "empirical", "insufficient-evidence"]
-        },
-        "deterministic_outcome": {"enum": ["success", "failure", null]},
-        "successes": {"type": ["integer", "null"], "minimum": 0},
-        "episodes": {"type": ["integer", "null"], "minimum": 1},
-        "retry_budget": {"type": ["integer", "null"], "minimum": 1},
-        "production_equivalent": {"type": ["boolean", "null"]},
-        "budget_enforced": {"type": ["boolean", "null"]},
-        "independent": {"type": ["boolean", "null"]},
-        "lower_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-        "upper_bound": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+        "reachable_proxy": {"type": ["boolean", "null"]},
+        "isolation_verified": {"type": ["boolean", "null"]},
+        "verified_episodes": {"type": ["integer", "null"], "minimum": 0},
+        "episodes_reviewed": {"type": ["integer", "null"], "minimum": 0},
+        "locus": {"enum": ["evaluator", "environment", null]}
       }
     },
     "metricEvidence": {
@@ -191,12 +184,12 @@
       "properties": {
         "vector": {
           "type": "string",
-          "pattern": "^AIVSS:1\\.0/LC:(D|I|M|N|X)/CP:(C|S|N|X)/AP:(L|C|N|X)/SR:(R|P|U|X)/ES:(W|M|N|X)$"
+          "pattern": "^AIVSS:1\\.0/LC:(D|I|M|N|X)/CP:(C|S|N|X)/AP:(L|C|N|X)/RH:(D|P|N|X)/ES:(W|M|N|X)$"
         },
         "metrics": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["LC", "CP", "AP", "SR", "ES"],
+          "required": ["LC", "CP", "AP", "RH", "ES"],
           "properties": {
             "LC": {
               "allOf": [
@@ -222,11 +215,11 @@
                 }
               ]
             },
-            "SR": {
+            "RH": {
               "allOf": [
                 {"$ref": "#/$defs/metricEvidence"},
                 {
-                  "properties": {"value": {"enum": ["R", "P", "U", "X"]}}
+                  "properties": {"value": {"enum": ["D", "P", "N", "X"]}}
                 }
               ]
             },

@@ -43,9 +43,9 @@ Every assessment publishes four results for one exploit path:
 1. **CVSS-BTE**: the unmodified FIRST CVSS v4.0 score, labelled with the FIRST
    nomenclature for the groups assessed (for example CVSS-BT)
 2. **Agentic Effect Class**: A0, A1, A2 or AX from an ordered rule ladder on
-   LC, CP, AP and SR
+   LC, CP, AP and RH
 3. **Agentic Uplift U**: an informative 0–10 ordinal from Lookup Table U
-   (Effect Class, SR within A2, and ES)
+   (Effect Class, RH within A2, and ES)
 4. **AIVSS**: the final score from Lookup Table AIVSS, keyed by the CVSS-BTE
    band and the Effect Class. A0 and AX keep CVSS-BTE; A1 and A2 take the
    higher of the table cell and CVSS-BTE, so AIVSS is never lower than CVSS-BTE
@@ -58,10 +58,10 @@ Every assessment publishes four results for one exploit path:
 | High | CVSS-BTE | 8.7 | 9.5 |
 | Critical | CVSS-BTE | 9.7 | 10.0 |
 
-- Classifying metrics: **LC, CP, AP, SR**; uplift metric: **ES**
-- Unknown evidence value: **X**; any X on LC, CP, AP or SR makes the result
+- Classifying metrics: **LC, CP, AP, RH**; uplift metric: **ES**
+- Unknown evidence value: **X**; any X on LC, CP, AP or RH makes the result
   `provisional`
-- **SR and AT must agree:** SR:P or SR:U requires CVSS `AT:P`
+- **RH (reward hacking)** records whether the agent's own optimization of a proxy objective, evaluator or verifier drives it across a security boundary; CVSS v4.0 has no equivalent metric
 - **Agent untraceability** (High, Moderate, Low or X) is mandatory report
   metadata from a retrieval exercise; it is not part of the vector or the score
 - **Exploit Maturity (`E`):** resolved from the evidence ladder before CVSS-BTE scoring
@@ -78,7 +78,7 @@ CVSS and AIVSS vectors are separate, following the
 
 ```text
 CVSS:4.0/AV:N/AC:H/AT:N/PR:N/UI:N/VC:H/VI:L/VA:L/SC:H/SI:N/SA:N/E:P
-AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W
+AIVSS:1.0/LC:D/CP:C/AP:L/RH:D/ES:W
 ```
 
 This ASI06 reference path reports CVSS-BT 7.8 (High), Effect Class A2 (AP:L),
@@ -93,7 +93,7 @@ specification at Conformance Levels 1 and 2:
 
 1. Resolves Exploit Maturity (`E`) from the evidence ladder before severity
 2. Requires a complete five-metric Agentic AI Profile and an agent
-   untraceability record for every assessment, and enforces the SR/AT rule
+   untraceability record for every assessment, and validates the RH evidence
 3. Derives the Effect Class, U and AIVSS from the ladder and Tables 5 and 6
 4. Accepts ASI01–ASI10 and MAESTRO-extended taxonomy metadata
 5. Emits SSVC/BOD decision tracks at Conformance Level 2
@@ -127,7 +127,7 @@ AIVSS_BROWSER_TESTS=1 pytest tests/test_web_calculator_browser.py
 
 ```bash
 aivss-calc assess examples/asi06-example.json
-aivss-calc profile "CVSS:4.0/..." --aivss-vector "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/ES:W"
+aivss-calc profile "CVSS:4.0/..." --aivss-vector "AIVSS:1.0/LC:D/CP:C/AP:L/RH:D/ES:W"
 aivss-calc migrate-vector "AIVSS:1.0/LC:D/CP:C/AP:L/SR:R/EX:W/PT:H/CA:M/TD:H"
 aivss-calc rubric
 aivss-calc demo

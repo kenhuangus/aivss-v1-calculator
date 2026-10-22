@@ -14,7 +14,6 @@ from .ai_metrics import (
     AIProfile,
     EFFECT_CLASS_STATUS,
     UNTRACEABILITY_DEFINITIONS,
-    check_sr_at,
     parse_aivss_vector,
     split_ai_vector,
     validate_metric_evidence,
@@ -24,7 +23,7 @@ from .cvss_score import score_cvss_bte
 from .lookup import AIVSS_BASIS, aivss_lookup, cvss_nomenclature
 from .decision import ExploitationEvidence, decide
 from .exploit_maturity import apply_exploit_maturity, resolve_exploit_maturity
-from .macrovector import effective, macrovector, parse_cvss_vector
+from .macrovector import macrovector, parse_cvss_vector
 from .priority import compute_priority
 from .taxonomy import normalize_risk_category
 from .versions import (
@@ -169,7 +168,7 @@ def assessment_from_payload(payload: dict[str, Any]) -> Assessment:
 def assess(a: Assessment) -> dict[str, Any]:
     """Produce a schema-conforming AIVSS 1.0 report for one exploit path.
 
-    Conformance Level 1 requires the Agentic AI Profile (LC, CP, AP, SR, ES)
+    Conformance Level 1 requires the Agentic AI Profile (LC, CP, AP, RH, ES)
     and agent untraceability metadata, and resolves Exploit Maturity (E) from
     the evidence ladder before CVSS-BTE scoring. AIVSS is read from Lookup
     Table AIVSS (Table 6) and is never lower than CVSS-BTE.
@@ -250,7 +249,7 @@ def assess(a: Assessment) -> dict[str, Any]:
     if profile is None:
         raise ValueError(
             "Conformance Level 1 requires an Agentic AI Profile "
-            "(aivss_vector or ai_profile with LC, CP, AP, SR and ES)"
+            "(aivss_vector or ai_profile with LC, CP, AP, RH and ES)"
         )
     validate_metric_evidence(profile, a.metric_evidence)
     if a.agent_untraceability is None:
@@ -272,8 +271,6 @@ def assess(a: Assessment) -> dict[str, Any]:
     metrics = parse_cvss_vector(resolved_vector)
     mv = macrovector(metrics)
     cvss_bte = score_cvss_bte(resolved_vector)
-    # SR refines AT and must agree with the effective AT (Section 4.3).
-    check_sr_at(profile.sr, effective(metrics, "AT"))
 
     # (2)-(4) Effect Class by the ordered ladder, then the lookup tables.
     ai_class = profile.effect_class()

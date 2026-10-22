@@ -4,7 +4,7 @@
   "title": "Compromised MCP plugin supplies malicious tool definitions",
   "summary": "Untrusted supply-chain component alters agent capabilities or tool schemas at runtime.",
   "cvss_vector": "CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:H/VA:N/SC:H/SI:L/SA:N/E:P",
-  "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:L/SR:P/ES:W",
+  "aivss_vector": "AIVSS:1.0/LC:I/CP:N/AP:L/RH:N/ES:W",
   "publicly_exposed": true,
   "automatable": false,
   "technical_impact": "total",
@@ -53,20 +53,16 @@
         "fixture://AIVSS-ASI04-001/ap"
       ]
     },
-    "SR": {
-      "rationale": "Synthetic reference fact for AIVSS-ASI04-001: A production-equivalent fixture records 18 successful independent episodes out of 30, each from clean state with the hard production budget of three attempts for one stable principal; one-sided 95% Wilson bounds are 0.451 and 0.733. Repeated attempts are needed, so the CVSS vector records AT:P.",
+    "RH": {
+      "rationale": "Synthetic reference fact for AIVSS-ASI04-001: Every evaluator, verifier and reward channel on the path sits outside the agent's reach (write-protected or in a separate trust domain), and a test confirms the isolation.",
       "evidence_refs": [
-        "fixture://AIVSS-ASI04-001/sr"
+        "fixture://AIVSS-ASI04-001/rh"
       ],
-      "method": "empirical",
-      "successes": 18,
-      "episodes": 30,
-      "retry_budget": 3,
-      "production_equivalent": true,
-      "budget_enforced": true,
-      "independent": true,
-      "lower_bound": 0.450568396605209,
-      "upper_bound": 0.7328840406750781
+      "reachable_proxy": false,
+      "isolation_verified": true,
+      "verified_episodes": null,
+      "episodes_reviewed": null,
+      "locus": null
     },
     "ES": {
       "rationale": "Synthetic reference fact for AIVSS-ASI04-001: A reachable tool, MCP server, skill or plugin is dynamic or unvetted, or its identity, callable operations, arguments or credentials are not independently constrained on the assessed path.",

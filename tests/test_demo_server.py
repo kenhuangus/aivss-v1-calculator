@@ -62,14 +62,16 @@ def test_demo_top10_api():
         rows = json.loads(body)
         assert len(rows) == 10
         assert rows[0]["asi"] == "ASI01"
-        assert rows[0]["aivss"] == 10.0
+        assert rows[0]["aivss"] == 9.7
         assert rows[0]["cvss_bte"] == 9.2
         assert rows[0]["agent_untraceability"] in ("High", "Moderate", "Low", "X")
         assert "escalated" in rows[0]
+        # ASI01 is A1 here, so the A2-only overlay does not trigger.
+        assert rows[0]["overlay_triggered"] is False
         # A2 at 3D ceiling: overlay_triggered but not escalated
-        asi01 = next(r for r in rows if r["asi"] == "ASI01")
-        assert asi01["overlay_triggered"] is True
-        assert asi01["escalated"] is False
+        asi10 = next(r for r in rows if r["asi"] == "ASI10")
+        assert asi10["overlay_triggered"] is True
+        assert asi10["escalated"] is False
 
     _with_server(run)
 
