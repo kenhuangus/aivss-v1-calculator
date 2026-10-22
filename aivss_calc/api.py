@@ -184,6 +184,7 @@ def profile_report(cvss_vector: str, profile: AIProfile) -> dict[str, Any]:
         "cvss_vector": cvss_vector,
         "aivss_vector": profile.to_vector(),
         "macrovector": macrovector(metrics),
+        "cvss_score": score,
         "cvss_bte": score,
         "cvss_nomenclature": cvss_nomenclature(metrics),
         "cvss_band": lookup["cvss_band"],
@@ -197,6 +198,10 @@ def profile_report(cvss_vector: str, profile: AIProfile) -> dict[str, Any]:
         "note": PROFILE_NOTE,
         "agentic_ai_profile": profile.describe(),
         "agentic_effect_class": effect,
+        "agentic_effect_class_min": profile.effect_class_range()[0],
+        "agentic_effect_class_max": profile.effect_class_range()[1],
+        "aivss_min": aivss_lookup(score, profile.effect_class_range()[0])["aivss"],
+        "aivss_max": aivss_lookup(score, profile.effect_class_range()[1])["aivss"],
         "agentic_effect_class_status": EFFECT_CLASS_STATUS,
     }
 

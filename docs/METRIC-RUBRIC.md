@@ -1,14 +1,16 @@
-# Agentic AI Metric Rubric 1.1.0
+# Agentic AI Metric Rubric 1.2.0
 
 This is the authoritative value-definition document for the five AIVSS 1.0
 metrics (LC, CP, AP, SR, ES) and for the mandatory `agent_untraceability`
 metadata. [SCORING.md](SCORING.md) owns the Effect Class ladder and the lookup
 tables; [CVSS-MAPPING.md](CVSS-MAPPING.md) owns boundaries with CVSS.
 
-Rubric 1.1.0 aligns with the AIVSS 1.0 specification. Compared with the 1.0.0
+Rubric 1.2.0 aligns with the AIVSS 1.0 specification. Compared with the 1.0.0
 draft rubric: EX is renamed ES (extension binding surface) and its values are
 redefined, PT and CA are withdrawn, and TD is replaced by agent untraceability
-metadata, which is not a vector metric.
+metadata, which is not a vector metric. Rubric 1.2.0 adds the Context
+Persistence clarification (stored source content that is only re-retrieved is
+not CP) and labels the SR thresholds as proposed defaults.
 
 ## Required assessment record
 
@@ -139,7 +141,11 @@ upper = min(1, c+m)
 ```
 
 The reference calculator exposes `classify_sr()` so implementations do not
-need to reproduce the interval arithmetic independently.
+need to reproduce the interval arithmetic independently. The episode minimum
+and the 0.90 and 0.10 cut-offs are proposed defaults, not empirically
+established thresholds. The reference calculator enforces these defaults, so a
+report that relies on other thresholds is not a Conformance Level 1 result until
+the report contract carries them.
 
 | Value | Assign when |
 |---|---|

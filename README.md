@@ -89,7 +89,7 @@ U 10 and AIVSS 9.5.
 
 Repository: https://github.com/kenhuangus/aivss-v1-candidate
 
-The reference calculator (`aivss-calc` 1.1.0) implements the AIVSS 1.0
+The reference calculator (`aivss-calc` 1.2.0) implements the AIVSS 1.0
 specification at Conformance Levels 1 and 2:
 
 1. Resolves Exploit Maturity (`E`) from the evidence ladder before severity

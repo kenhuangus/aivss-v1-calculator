@@ -23,8 +23,8 @@
   "properties": {
     "aivss_version": {"const": "1.0"},
     "report_schema_version": {"const": "1.0"},
-    "rubric_version": {"const": "1.1.0"},
-    "calculator_version": {"const": "1.1.0"},
+    "rubric_version": {"const": "1.2.0"},
+    "calculator_version": {"const": "1.2.0"},
     "specification_status": {"const": "candidate"},
     "finding_id": {"type": "string", "minLength": 1},
     "path_id": {"type": "string", "minLength": 1},
@@ -101,14 +101,18 @@
     "cvss": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["vector", "macrovector", "cvss_bte", "exploit_maturity"],
+      "required": ["vector", "macrovector", "cvss_score", "cvss_bte", "exploit_maturity"],
       "properties": {
         "vector": {
           "type": "string",
           "pattern": "^CVSS:4\\.0(?:/(?!LC:|CP:|AP:|SR:|ES:|EX:|PT:|CA:|TD:)[A-Z][A-Z0-9]*:[A-Za-z]+)+$"
         },
         "macrovector": {"type": "string", "pattern": "^[0-2]{6}$"},
-        "cvss_bte": {"$ref": "#/$defs/score"},
+        "cvss_score": {"$ref": "#/$defs/score"},
+        "cvss_bte": {
+          "$ref": "#/$defs/score",
+          "description": "Deprecated alias of cvss_score, retained for one release."
+        },
         "exploit_maturity": {
           "type": "object",
           "additionalProperties": false,
@@ -180,6 +184,8 @@
         "agentic_effect_class",
         "agentic_effect_class_label",
         "agentic_effect_class_status",
+        "agentic_effect_class_min",
+        "agentic_effect_class_max",
         "agentic_uplift_u"
       ],
       "properties": {
@@ -241,6 +247,8 @@
           "enum": ["None", "Present", "Substantial", "Insufficient evidence"]
         },
         "agentic_effect_class_status": {"const": "candidate-unvalidated"},
+        "agentic_effect_class_min": {"enum": ["A0", "A1", "A2"]},
+        "agentic_effect_class_max": {"enum": ["A0", "A1", "A2"]},
         "agentic_uplift_u": {
           "oneOf": [{"type": "integer", "minimum": 0, "maximum": 10}, {"type": "null"}]
         }
@@ -287,6 +295,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "cvss_score",
         "cvss_bte",
         "cvss_nomenclature",
         "cvss_band",
@@ -294,6 +303,8 @@
         "provisional",
         "agentic_uplift_u",
         "aivss",
+        "aivss_min",
+        "aivss_max",
         "aivss_band",
         "table_cell",
         "rule",
@@ -301,7 +312,11 @@
         "basis"
       ],
       "properties": {
-        "cvss_bte": {"$ref": "#/$defs/score"},
+        "cvss_score": {"$ref": "#/$defs/score"},
+        "cvss_bte": {
+          "$ref": "#/$defs/score",
+          "description": "Deprecated alias of cvss_score, retained for one release."
+        },
         "cvss_nomenclature": {
           "enum": ["CVSS-B", "CVSS-BT", "CVSS-BE", "CVSS-BTE"]
         },
@@ -314,6 +329,8 @@
           "oneOf": [{"type": "integer", "minimum": 0, "maximum": 10}, {"type": "null"}]
         },
         "aivss": {"$ref": "#/$defs/score"},
+        "aivss_min": {"$ref": "#/$defs/score"},
+        "aivss_max": {"$ref": "#/$defs/score"},
         "aivss_band": {
           "enum": ["None", "Low", "Medium", "High", "Critical"]
         },

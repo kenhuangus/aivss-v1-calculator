@@ -1,6 +1,6 @@
 [project]
 name = "aivss-calc"
-version = "1.1.0"
+version = "1.2.0"
 description = "AIVSS 1.0 calculator with a separate Agentic AI profile"
 readme = "README.md"
 license = { text = "Apache-2.0" }

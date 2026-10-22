@@ -1,7 +1,7 @@
 # AIVSS Calculator Algorithms
 
 This document defines calculator behavior for the AIVSS 1.0
-specification, rubric 1.1.0, calculator 1.1.0. Normative metric meanings live
+specification, rubric 1.2.0, calculator 1.2.0. Normative metric meanings live
 in [METRIC-RUBRIC.md](METRIC-RUBRIC.md). Every step below is a category
 assignment, an ordered rule, or a table lookup; no arithmetic is performed on
 ordinal agentic levels.
@@ -10,11 +10,13 @@ ordinal agentic levels.
 
 Every assessment publishes, for one exploit path:
 
-1. `cvss_bte`: the official CVSS v4.0 score from the unmodified FIRST algorithm,
-   labelled with the FIRST nomenclature for the metric groups assessed
-   (`CVSS-B`, `CVSS-BT`, `CVSS-BE` or `CVSS-BTE`).
+1. `cvss_score`: the official CVSS v4.0 score from the unmodified FIRST algorithm,
+   with `cvss_nomenclature` naming the metric groups assessed (`CVSS-B`,
+   `CVSS-BT`, `CVSS-BE` or `CVSS-BTE`). The earlier field name `cvss_bte` is
+   kept as a deprecated alias of `cvss_score` for one release.
 2. `agentic_effect_class`: A0, A1, A2 or AX from the ordered rule ladder.
-3. `agentic_uplift_u`: the informative ordinal U (0 to 10) from Lookup Table U.
+3. `agentic_uplift_u`: the optional, descriptive ordinal U (0 to 10) from Lookup
+   Table U.
 4. `aivss`: the final combined severity from Lookup Table AIVSS.
 
 `agent_untraceability` (High, Moderate, Low or X) is reported beside them as
@@ -72,6 +74,17 @@ the class `candidate-unvalidated`: its boundaries are explicit and
 deterministic, but have not yet passed the gates in
 [VALIDATION.md](VALIDATION.md).
 
+## Observed minimum and possible range
+
+When LC, CP, AP or SR is `X`, the report also carries the observed minimum
+class (each `X` treated as its least severe value: LC:N, CP:N, AP:N, SR:U) and
+the maximum possible class (each `X` treated as its most severe value: LC:D,
+CP:C, AP:L, SR:R) as `agentic_effect_class_min` and `agentic_effect_class_max`,
+with the Table 6 values for those classes at the same CVSS band as `aivss_min`
+and `aivss_max`. With no `X` the range collapses to the Effect Class and AIVSS.
+The range keeps AX and a provisional A1 from being read as a confirmed absence
+of further agentic uplift.
+
 ## Lookup Table U (Table 5)
 
 Read U from the Effect Class, SR (within A2 only) and ES. AX uses the A0 row.
@@ -105,14 +118,27 @@ Key the table on the FIRST qualitative band of CVSS-BTE and the Effect Class.
   (`rule: cell` when the cell is at least CVSS-BTE, otherwise
   `rule: cvss_bte_floor`).
 
-AIVSS is therefore never lower than CVSS-BTE and stays within 0.0 to 10.0, as
-the CVSS v4.0 Extensions Framework (User Guide, Section 3.11) requires of an
-extension that changes the score. Cell values are discrete policy settings, not
-measurements. Within one cell, order findings by CVSS-BTE (comparison only).
+AIVSS is therefore never lower than CVSS-BTE. That floor is an AIVSS design
+choice, not a FIRST requirement. The CVSS v4.0 Extensions Framework (User
+Guide, Section 3.11) requires that existing metric definitions are preserved
+and that an extension that changes the score stays within 0.0 to 10.0. Cell
+values are discrete policy settings, not measurements. Within one cell, order findings by CVSS-BTE (comparison only).
 
-The report's `scores` object carries `cvss_bte`, `cvss_nomenclature`,
-`cvss_band`, `agentic_effect_class`, `provisional`, `agentic_uplift_u`, `aivss`,
-`aivss_band`, `table_cell`, `rule`, `status` (`normative`) and `basis`.
+The report's `scores` object carries `cvss_score`, `cvss_bte` (deprecated
+alias), `cvss_nomenclature`, `cvss_band`, `agentic_effect_class`, `provisional`,
+`agentic_uplift_u`, `aivss`, `aivss_min`, `aivss_max`, `aivss_band`,
+`table_cell`, `rule`, `status` (`normative`) and `basis`.
+
+Evidentiary status: the table establishes mathematical consistency (bounds and
+monotonicity) and assessor reproducibility, not expert calibration or empirical
+validation. The A1 cells promote Low to Medium (5.5) and Medium to High (7.5),
+hold High inside the High band (8.7) and raise Critical to 9.7; the A2 cells
+promote Low to High (7.1) and Medium to the top of High (8.9), which are the two
+AIVSS v0.8 anchor values, High to Critical (9.5) and Critical to the cap (10.0).
+Positions inside each target band are policy choices, not derived from data.
+Band-keyed lookup produces step effects: an A2 finding at CVSS 3.9 maps to 7.1
+while 4.0 maps to 8.9 (A1: 5.5 and 7.5). The floor at CVSS-BTE is an AIVSS
+design choice, not a FIRST requirement.
 
 ## Agent untraceability
 

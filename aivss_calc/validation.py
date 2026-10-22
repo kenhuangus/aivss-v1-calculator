@@ -131,8 +131,8 @@ def validate_report(report: dict[str, Any]) -> None:
 
     cvss = report["cvss"]
     expected_cvss = score_cvss_bte(cvss["vector"])
-    if cvss["cvss_bte"] != expected_cvss:
-        raise ValueError("cvss_bte does not match the CVSS vector")
+    if cvss["cvss_bte"] != expected_cvss or cvss["cvss_score"] != expected_cvss:
+        raise ValueError("cvss_score does not match the CVSS vector")
     expected_macrovector = macrovector(parse_cvss_vector(cvss["vector"]))
     if cvss["macrovector"] != expected_macrovector:
         raise ValueError("macrovector does not match the CVSS vector")
@@ -164,6 +164,12 @@ def validate_report(report: dict[str, Any]) -> None:
         raise ValueError("profile complete flag does not match metric values")
     if extension["provisional"] != profile.provisional:
         raise ValueError("provisional flag does not match the classifying metrics")
+    class_min, class_max = profile.effect_class_range()
+    if (
+        extension["agentic_effect_class_min"] != class_min
+        or extension["agentic_effect_class_max"] != class_max
+    ):
+        raise ValueError("effect class range does not match the AIVSS vector")
     if extension["agentic_uplift_u"] != profile.agentic_uplift_u():
         raise ValueError("agentic_uplift_u does not match Lookup Table U")
     untraceability_record = report["agent_untraceability"]
@@ -187,6 +193,7 @@ def validate_report(report: dict[str, Any]) -> None:
     scores = report["scores"]
     lookup = aivss_lookup(expected_cvss, profile.effect_class())
     expected_scores = {
+        "cvss_score": expected_cvss,
         "cvss_bte": expected_cvss,
         "cvss_nomenclature": cvss_nomenclature(parse_cvss_vector(cvss["vector"])),
         "cvss_band": lookup["cvss_band"],
@@ -194,6 +201,8 @@ def validate_report(report: dict[str, Any]) -> None:
         "provisional": profile.provisional,
         "agentic_uplift_u": profile.agentic_uplift_u(),
         "aivss": lookup["aivss"],
+        "aivss_min": aivss_lookup(expected_cvss, class_min)["aivss"],
+        "aivss_max": aivss_lookup(expected_cvss, class_max)["aivss"],
         "aivss_band": lookup["aivss_band"],
         "table_cell": lookup["table_cell"],
         "rule": lookup["rule"],

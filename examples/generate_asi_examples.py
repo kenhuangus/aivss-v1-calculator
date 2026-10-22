@@ -34,6 +34,7 @@ def main() -> None:
                 "title": scenario["title"],
                 "cvss_vector": report["cvss"]["vector"],
                 "aivss_vector": report["agentic_ai_profile"]["vector"],
+                "cvss_score": report["scores"]["cvss_score"],
                 "cvss_bte": report["scores"]["cvss_bte"],
                 "cvss_nomenclature": report["scores"]["cvss_nomenclature"],
                 "aivss": report["scores"]["aivss"],
